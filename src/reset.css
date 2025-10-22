@@ -1,0 +1,228 @@
+/* 
+    PaintAPP/Reset.css
+
+    Essential app | Paint app
+    Made by Mint teams
+    Samuel lakamo , Peakk2011(Peakk)
+    Version 1.0 First release
+    
+    Updated: 2025-23-08
+    With Seprate plain PaintAPP app
+    License: MIT
+    GitHub: Peakk2011/Essential-app
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind:wght@300&family=IBM+Plex+Sans+Thai:wght@300&family=Inter+Tight:wght@300&family=Noto+Sans+SC:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@100..700&display=swap');
+
+:where(li, a) {
+    text-decoration: none;
+    list-style: none;
+}
+
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.material-symbols-outlined {
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 32;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+:root {
+    /* Theme Colors */
+    --theme-bg: hsl(0, 0%, 14%);
+    --theme-fg: #ffffff;
+    --theme-primary: #080808;
+    --theme-accent: hsl(0, 13%, 68%);
+    --theme-border: hsl(0, 0%, 18%);
+    --theme-card: #141414;
+    --theme-titlebar: #0f0f0f;
+    --theme-links: #C4C4C4;
+    --HoverColor: #313131;
+    --SoftHoverColor: #1e1e1e;
+    --NameColorSvg: #fff;
+
+    --font-primary: "Manrope", sans-serif;
+    --font-text: "Inter Tight", system-ui, sans-serif;
+    --font-size-base: 14px;
+    --font-scale: 1.2;
+    --line-height: 1.5;
+
+    --spacing-unit: 8px;
+    --spacing-xs: calc(var(--spacing-unit) * 0.5);
+    --spacing-sm: var(--spacing-unit);
+    --spacing-md: calc(var(--spacing-unit) * 2);
+    --spacing-lg: calc(var(--spacing-unit) * 3);
+
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    --menu-transition: 300ms cubic-bezier(0.075, 0.82, 0.165, 1);
+    --MenuEaseTransition: 300ms cubic-bezier(0.2, 0.0, 0, 1.0);
+    --transitionEaseNormal: 480ms cubic-bezier(0.2, 0.0, 0, 1.0);
+
+    /* Legacy variables */
+    --ResetPadding: 0;
+    --ResetMargin: 0;
+    --ResetBoxSizing: border-box;
+    --color-primary: var(--theme-primary);
+    --border: 1px solid var(--theme-border);
+    --ColorHighlight: var(--theme-accent);
+    --CardMainColor: var(--theme-card);
+    --accent: var(--theme-accent);
+    --HRborder: solid 1px #2f2f2f;
+    --RippleEffectColor: rgba(255, 255, 255, 0.270);
+
+    /* Titlebar color */
+    --TitlebarColor: #0f0f0f;
+    --TitlebarColorButton: #fff;
+    --TitlebarColorBorder: solid 1px var(--theme-border);
+    --TitlebarColorHover: var(--SoftHoverColor);
+
+    /* Contextmenu color */
+    --ctx-menu-bg: #1A1A1A;
+    --ctx-menu-hover: #313131;
+    --ctx-menu-active: #0c0c0c;
+    --ctx-menu-text: #e3e3e3;
+    --ctx-menu-text-hover: #ffffff;
+
+    /* Shadow */
+    --ctx-menu-shadow: 0px 24px 38px rgba(0, 0, 0, 0.14),
+        0px 9px 46px rgba(0, 0, 0, 0.12),
+        0px 11px 15px rgba(0, 0, 0, 0.20);
+
+    /* Buttons */
+    --PrimaryButtonsColors: #222;
+    --PrimaryButtonsColors: var(--HoverColor);
+    /* Toggle Essential logo */
+    --LightmodeToggleButtons: none;
+    --DarkmodeToggleButtons: block;
+    /* BackgroundBlur color */
+    --BackgroundBlurColor: rgba(15, 15, 15, 0.920);
+}
+
+/* (default) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --theme-bg: hsl(0, 0%, 14%);
+        --theme-fg: #ffffff;
+        --theme-primary: #080808;
+        --theme-accent: hsl(0, 13%, 68%);
+        --theme-border: #3f3f3f;
+        --theme-card: #141414;
+        --theme-titlebar: #0f0f0f;
+        --theme-links: #C4C4C4;
+        --HoverColor: #313131;
+        --SoftHoverColor: #1e1e1e;
+        --NameColorSvg: #fff;
+        --HRborder: solid 1px #2f2f2f;
+        --RippleEffectColor: rgba(255, 255, 255, 0.270);
+        --TitlebarColor: #0f0f0f;
+        --TitlebarColorButton: #fff;
+        --TitlebarColorBorder: solid 1px #3f3f3f;
+        --TitlebarColorHover: #1e1e1e;
+        --ctx-menu-bg: #1A1A1A;
+        --ctx-menu-hover: #313131;
+        --ctx-menu-active: #0c0c0c;
+        --ctx-menu-text: #e3e3e3;
+        --ctx-menu-text-hover: #ffffff;
+        --ctx-menu-shadow: 0px 24px 38px rgba(0, 0, 0, 0.14),
+            0px 9px 46px rgba(0, 0, 0, 0.12),
+            0px 11px 15px rgba(0, 0, 0, 0.20);
+        --PrimaryButtonsColors: #222;
+        --PrimaryButtonsColors: var(--HoverColor);
+        --LightmodeToggleButtons: none;
+        --DarkmodeToggleButtons: block;
+        --BackgroundBlurColor: rgba(15, 15, 15, 0.920);
+        color-scheme: dark;
+        background: var(--theme-bg);
+        color: var(--theme-fg);
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --theme-bg: #faf8f0;
+        --theme-fg: #0f0f0f;
+        --theme-primary: #ffffff;
+        --theme-card: #fcfcfc;
+        --theme-titlebar: #f0f0f0;
+        --theme-border: #cfcfcf;
+        --HoverColor: hsl(40, 10%, 85%);
+        --SoftHoverColor: hsl(40, 10%, 88%);
+        --theme-links: #222;
+        --NameColorSvg: #000;
+        --theme-accent: #ccaeae;
+        --HRborder: solid 1px #e6e6e6;
+        --RippleEffectColor: rgba(0, 0, 0, 0.27);
+        --TitlebarColor: #f3f2f0;
+        --TitlebarColorButton: #303030;
+        --TitlebarColorBorder: solid 1px #cfcfcf;
+        --TitlebarColorHover: hsl(40, 10%, 82.5%);
+        --ctx-menu-bg: #f6f6f5;
+        --ctx-menu-hover: #e4e4e4;
+        --ctx-menu-active: #e8e8e8;
+        --ctx-menu-text: #000;
+        --ctx-menu-text-hover: #000000;
+        --ctx-menu-shadow: 0px 24px 38px rgba(0, 0, 0, 0.10),
+            0px 9px 46px rgba(0, 0, 0, 0.08),
+            0px 11px 15px rgba(0, 0, 0, 0.12);
+        --PrimaryButtonsColors: #cecdc6;
+        --PrimaryButtonsColors: var(--HoverColor);
+        --LightmodeToggleButtons: block;
+        --DarkmodeToggleButtons: none;
+        --BackgroundBlurColor: rgba(250, 248, 240, 0.765);
+        color-scheme: light;
+        background: var(--theme-bg);
+        color: var(--theme-fg);
+    }
+}
+
+* {
+    font-family: var(--font-primary);
+    padding: var(--ResetPadding);
+    margin: var(--ResetMargin);
+    box-sizing: var(--ResetBoxSizing);
+    -webkit-user-select: none;
+    user-select: none;
+    transition: 0s;
+}
+
+html {
+    font-size: var(--font-size-base);
+    background-color: var(--theme-bg);
+    color: var(--theme-fg);
+}
+
+body {
+    background-color: var(--theme-bg);
+    color: var(--theme-fg);
+    line-height: var(--line-height);
+}
+
+@media (max-width: 768px) {
+    :root {
+        --font-size-base: 14px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}
+
+@media (prefers-contrast: high) {
+    :root {
+        --theme-border: currentColor;
+    }
+}
