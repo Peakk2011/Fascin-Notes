@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../reset.css">
+</head>
+
+<body>
+
+    <style>
+        /* Tabbar Styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'system-ui', sans-serif;
+        }
+
+        #tabbar {
+            -webkit-app-region: drag;
+            display: flex;
+            align-items: center;
+            height: 36px;
+            background-color: var(--theme-bg);
+            -webkit-user-select: none;
+            overflow-x: auto;
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 100%;
+        }
+
+        body.mac #tabbar {
+            width: calc(100% - 5.5rem);
+        }
+
+        .tab {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 36px 0.75rem;
+            cursor: pointer;
+            user-select: none;
+            -webkit-user-select: none;
+            font-size: 14px;
+            width: 260px;
+            transition: all 200ms cubic-bezier(0.86, 0, 0.07, 1);
+            -webkit-app-region: no-drag;
+        }
+
+        .tab.active {
+            background: var(--PrimaryButtonsColors);
+        }
+
+        .tab:hover {
+            filter: brightness(1.2);
+        }
+
+        .tab .close {
+            margin-left: 12px;
+            font-weight: 200;
+            font-size: 24px;
+            cursor: pointer;
+            padding-top: 0.1rem;
+            -webkit-app-region: no-drag;
+        }
+
+        #addTab {
+            margin-left: auto;
+            padding: 0 1rem;
+            cursor: pointer;
+            font-size: 20px;
+            font-weight: 400;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-app-region: no-drag;
+        }
+    </style>
+
+    <div id="tabbar">
+        <div id="addTab">+</div>
+    </div>
+
+    <script type="module" src="tabbar.js"></script>
+
+</body>
+
+</html>

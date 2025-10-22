@@ -9,7 +9,7 @@
     Updated: 2025-23-08
     With Seprate plain PaintAPP app
     License: MIT
-    GitHub: Peakk2011/Essential-app
+    GitHub: Peakk2011/EssentialAPP
 */
 
 @import url('https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap');
@@ -40,7 +40,7 @@
 
 :root {
     /* Theme Colors */
-    --theme-bg: hsl(0, 0%, 14%);
+    --theme-bg: hsl(0, 0%, 12%);
     --theme-fg: #ffffff;
     --theme-primary: #080808;
     --theme-accent: hsl(0, 13%, 68%);
@@ -48,7 +48,7 @@
     --theme-card: #141414;
     --theme-titlebar: #0f0f0f;
     --theme-links: #C4C4C4;
-    --HoverColor: #313131;
+    --HoverColor: #2a2a2a;
     --SoftHoverColor: #1e1e1e;
     --NameColorSvg: #fff;
 
@@ -101,7 +101,6 @@
         0px 11px 15px rgba(0, 0, 0, 0.20);
 
     /* Buttons */
-    --PrimaryButtonsColors: #222;
     --PrimaryButtonsColors: var(--HoverColor);
     /* Toggle Essential logo */
     --LightmodeToggleButtons: none;
@@ -113,7 +112,7 @@
 /* (default) */
 @media (prefers-color-scheme: dark) {
     :root {
-        --theme-bg: hsl(0, 0%, 14%);
+        --theme-bg: hsl(0, 0%, 12%);
         --theme-fg: #ffffff;
         --theme-primary: #080808;
         --theme-accent: hsl(0, 13%, 68%);
@@ -121,7 +120,7 @@
         --theme-card: #141414;
         --theme-titlebar: #0f0f0f;
         --theme-links: #C4C4C4;
-        --HoverColor: #313131;
+        --HoverColor: #2a2a2a;
         --SoftHoverColor: #1e1e1e;
         --NameColorSvg: #fff;
         --HRborder: solid 1px #2f2f2f;
@@ -138,7 +137,6 @@
         --ctx-menu-shadow: 0px 24px 38px rgba(0, 0, 0, 0.14),
             0px 9px 46px rgba(0, 0, 0, 0.12),
             0px 11px 15px rgba(0, 0, 0, 0.20);
-        --PrimaryButtonsColors: #222;
         --PrimaryButtonsColors: var(--HoverColor);
         --LightmodeToggleButtons: none;
         --DarkmodeToggleButtons: block;

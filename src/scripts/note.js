@@ -1,29 +1,34 @@
 let autoSaveTimeout;
 let currentFontSize = 16;
+let activeTabId = null;
+const body = document.body;
 
 const textarea = document.getElementById('autoSaveTextarea');
 const saveIndicator = document.getElementById('saveIndicator');
 const statusText = document.getElementById('statusText');
 
-const loadSavedText = () => {
-    const savedText = localStorage.getItem('autoSaveText') || '';
-    const savedFontSize = parseInt(localStorage.getItem('fontSize'), 10) || 16;
+// Save via object per tab
+const tabsData = {}; // key = tabId, value = { text, fontSize }
 
-    textarea.value = savedText;
-    currentFontSize = savedFontSize;
+const loadTabData = (tabId) => {
+    activeTabId = tabId;
+    const data = tabsData[tabId] || { text: '', fontSize: 16 };
+    textarea.value = data.text;
+    currentFontSize = data.fontSize;
     textarea.style.fontSize = `${currentFontSize}px`;
 };
 
-const saveText = () => {
-    localStorage.setItem('autoSaveText', textarea.value);
-    localStorage.setItem('fontSize', currentFontSize);
+const saveTabData = () => {
+    if (!activeTabId) return;
+    tabsData[activeTabId] = {
+        text: textarea.value,
+        fontSize: currentFontSize
+    };
     saveIndicator.classList.remove('saving');
     statusText.textContent = `Saved ${new Date().toLocaleTimeString('th-TH')}`;
-
     setTimeout(() => {
         statusText.textContent = 'Saved';
     }, 1000);
-
 };
 
 const showSaving = () => {
@@ -35,7 +40,7 @@ const zoomIn = () => {
     if (currentFontSize < 128) {
         currentFontSize += 2;
         textarea.style.fontSize = `${currentFontSize}px`;
-        localStorage.setItem('fontSize', currentFontSize);
+        saveTabData();
     }
 };
 
@@ -43,22 +48,20 @@ const zoomOut = () => {
     if (currentFontSize > 8) {
         currentFontSize -= 2;
         textarea.style.fontSize = `${currentFontSize}px`;
-        localStorage.setItem('fontSize', currentFontSize);
+        saveTabData();
     }
 };
 
 const resetZoom = () => {
     currentFontSize = 16;
     textarea.style.fontSize = `${currentFontSize}px`;
-    localStorage.setItem('fontSize', currentFontSize);
+    saveTabData();
 };
 
 const triggerAutoSave = () => {
     clearTimeout(autoSaveTimeout);
     showSaving();
-    autoSaveTimeout = setTimeout(() => {
-        saveText();
-    }, 1000); // 1s
+    autoSaveTimeout = setTimeout(() => saveTabData(), 1000);
 };
 
 textarea.addEventListener('input', triggerAutoSave);
@@ -66,34 +69,33 @@ textarea.addEventListener('input', triggerAutoSave);
 document.addEventListener('keydown', e => {
     if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+') {
-            e.preventDefault();
-            zoomIn();
+            e.preventDefault(); zoomIn();
         } else if (e.key === '-' || e.key === '_') {
-            e.preventDefault();
-            zoomOut();
+            e.preventDefault(); zoomOut();
         } else if (e.key === '0') {
-            e.preventDefault();
-            resetZoom();
+            e.preventDefault(); resetZoom();
         }
     }
 });
 
-// Mouse wheel zoom
 textarea.addEventListener('wheel', e => {
     if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
-        if (e.deltaY < 0) {
-            zoomIn();
-        } else {
-            zoomOut();
-        }
+        e.deltaY < 0 ? zoomIn() : zoomOut();
     }
 });
 
-loadSavedText();
+window.electronAPI.onLoadTabData((tabId, data) => {
+    tabsData[tabId] = data || { text: '', fontSize: 16 };
+    loadTabData(tabId);
+});
 
-window.addEventListener('beforeunload', () => {
-    if (textarea.value.trim()) {
-        saveText();
-    }
+window.addEventListener('beforeunload', () => saveTabData());
+
+window.electronAPI.onInitOS((OS) => {
+    const body = document.body;
+    document.body.classList.add(OS);
+    if (OS === 'mac') body.classList.add('mac');
+    if (OS === 'windows') body.classList.add('windows');
+    console.log('BOO BOO BA BA IT WORKING');
 });
