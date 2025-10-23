@@ -1,0 +1,115 @@
+/* 
+    Made by Mint teams
+    Fascin-Notes
+
+    Updated: 2025-23-10
+    Fork from EssentialAPP
+    License: MIT
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Host+Grotesk:ital,wght@0,300..800;1,300..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hind:wght@300&family=IBM+Plex+Sans+Thai:wght@300&family=Inter+Tight:wght@300&family=Noto+Sans+SC:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@100..700&display=swap');
+
+:where(li, a) {
+    text-decoration: none;
+    list-style: none;
+}
+
+::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+}
+
+.material-symbols-outlined {
+    font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 32;
+    vertical-align: middle;
+    line-height: 1;
+}
+
+:root {
+    /* Theme Colors */
+    --theme-bg: hsl(0, 0%, 12%);
+    --theme-fg: #ffffff;
+    --theme-accent: hsl(0, 13%, 68%);
+    --HoverColor: #2a2a2a;
+    --theme-border: hsl(0, 0%, 30%);
+
+    --font-primary: "Manrope", sans-serif;
+    --font-text: "Inter Tight", system-ui, sans-serif;
+    --font-size-base: 14px;
+    --line-height: 1.5;
+
+    --transition: cubic-bezier(0.2, 0, 0, 1) 300ms;
+
+    /* Legacy variables */
+    --ResetPadding: 0;
+    --ResetMargin: 0;
+    --ResetBoxSizing: border-box;
+    /* Buttons */
+    --PrimaryButtonsColors: var(--HoverColor);
+}
+
+/* (default) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --theme-bg: hsl(0, 0%, 12%);
+        --theme-fg: #ffffff;
+        --theme-accent: hsl(0, 13%, 68%);
+        --HoverColor: #2a2a2a;
+        --theme-border: hsl(0, 0%, 30%);
+        --PrimaryButtonsColors: var(--HoverColor);
+        color-scheme: dark;
+        background: var(--theme-bg);
+        color: var(--theme-fg);
+    }
+}
+
+@media (prefers-color-scheme: light) {
+    :root {
+        --theme-bg: #faf8f0;
+        --theme-fg: #0f0f0f;
+        --HoverColor: hsl(40, 10%, 85%);
+        --theme-border: hsl(0, 0%, 85%);
+        --theme-accent: #ccaeae;
+        --PrimaryButtonsColors: #cecdc6;
+        --PrimaryButtonsColors: var(--HoverColor);
+        color-scheme: light;
+        background: var(--theme-bg);
+        color: var(--theme-fg);
+    }
+}
+
+* {
+    font-family: var(--font-primary);
+    padding: var(--ResetPadding);
+    margin: var(--ResetMargin);
+    box-sizing: var(--ResetBoxSizing);
+    -webkit-user-select: none;
+    user-select: none;
+    transition: 0s;
+}
+
+html {
+    font-size: var(--font-size-base);
+    background-color: var(--theme-bg);
+    color: var(--theme-fg);
+}
+
+body {
+    background-color: var(--theme-bg);
+    color: var(--theme-fg);
+    line-height: var(--line-height);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+    }
+}

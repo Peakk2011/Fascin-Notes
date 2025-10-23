@@ -1,7 +1,7 @@
 import { BrowserView } from "electron";
 import path from 'node:path';
 import { resolvePath } from '../utils/paths.js';
-import { OS } from '../config/osConfig.js'; 
+import { OS } from '../config/osConfig.js';
 
 export class TabManager {
     constructor(mainWindow) {
@@ -36,12 +36,6 @@ export class TabManager {
 
         if (!tab.loaded) {
             tab.view.webContents.loadFile(path.join(resolvePath('../index.html')));
-
-            tab.view.webContents.once('did-finish-load', () => {
-                tab.view.webContents.send('init-os', OS);
-                tab.view.webContents.send('loadTabData', tab.id, tab.state);
-            });
-
             tab.loaded = true;
         }
 

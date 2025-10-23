@@ -1,25 +1,3 @@
-#GotoHomePage {
-    border-bottom: var(--TitlebarColorBorder);
-    background-color: var(--TitlebarColor) !important;
-    border-right: none !important;
-    border-bottom: var(--TitlebarColorBorder);
-}
-
-.contentTEXT {
-    display: none;
-    position: absolute;
-    top: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 5;
-}
-
-.contentTEXT h1 {
-    font-family: var(--font-text), sans-serif;
-    font-weight: 400;
-    font-size: 14.5px;
-    transform: translate(0px, 1.25px);
-}
 
 .status {
     font-size: 14px;
@@ -27,7 +5,7 @@
     align-items: center;
     gap: 6px;
     position: fixed;
-    top: 10px;
+    top: 16px;
     right: 16px;
     z-index: 2;
 }
@@ -65,7 +43,7 @@
 textarea {
     width: 100%;
     min-height: 100vh;
-    padding: 1rem 0.65rem;
+    padding: 1.2rem 0.85rem;
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 16px;
     line-height: 1.15;
