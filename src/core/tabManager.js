@@ -1,6 +1,7 @@
 import { BrowserView } from "electron";
 import path from 'node:path';
 import { resolvePath } from '../utils/paths.js';
+import { OS } from '../config/osConfig.js'; 
 
 export class TabManager {
     constructor(mainWindow) {
@@ -35,25 +36,27 @@ export class TabManager {
 
         if (!tab.loaded) {
             tab.view.webContents.loadFile(path.join(resolvePath('../index.html')));
+
+            tab.view.webContents.once('did-finish-load', () => {
+                tab.view.webContents.send('init-os', OS);
+                tab.view.webContents.send('loadTabData', tab.id, tab.state);
+            });
+
             tab.loaded = true;
         }
 
         this.mainWindow.addBrowserView(tab.view);
         this.layoutActiveTab();
-
-        tab.view.webContents.send('loadTabData', tab.id, tab.state);
     }
 
-
-
     reorderTabs(fromIndex, toIndex) {
-        if (fromIndex === toIndex) { return; };
+        if (fromIndex === toIndex) { return; }
         const [tab] = this.tabs.splice(fromIndex, 1);
         this.tabs.splice(toIndex, 0, tab);
     }
 
     layoutActiveTab() {
-        if (!this.activeTab) { return; };
+        if (!this.activeTab) { return; }
         const [width, height] = this.mainWindow.getContentSize();
         this.activeTab.view.setBounds({ x: 0, y: 36, width, height: height - 36 });
         this.activeTab.view.setAutoResize({ width: true, height: true });
@@ -75,8 +78,7 @@ export class TabManager {
 
     closeTabByIndex(index) {
         const tab = this.tabs[index];
-        if (!tab) return;
+        if (!tab) { return; };
         this.closeTab(tab);
     }
-
 }

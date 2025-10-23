@@ -31,20 +31,31 @@
             width: 100%;
         }
 
-        body.mac #tabbar {
-            width: calc(100% - 5.5rem);
+        body.darwin #tabbar {
+            padding-left: 80px;
+            width: 100%;
+        }
+
+        body.win32 #tabbar {
+            width: 100%;
+        }
+
+        body.linux #tabbar {
+            width: 100%;
         }
 
         .tab {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 36px 0.75rem;
+            padding: 0 0.75rem;
             cursor: pointer;
             user-select: none;
             -webkit-user-select: none;
             font-size: 14px;
-            width: 260px;
+            min-width: 120px;
+            max-width: 260px;
+            height: 100%;
             transition: all 200ms cubic-bezier(0.86, 0, 0.07, 1);
             -webkit-app-region: no-drag;
         }
@@ -66,8 +77,11 @@
             -webkit-app-region: no-drag;
         }
 
+        .tab .close:hover {
+            color: #ff4444;
+        }
+
         #addTab {
-            margin-left: auto;
             padding: 0 1rem;
             cursor: pointer;
             font-size: 20px;
@@ -75,6 +89,13 @@
             user-select: none;
             -webkit-user-select: none;
             -webkit-app-region: no-drag;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        #addTab:hover {
+            filter: brightness(1.2);
         }
     </style>
 

@@ -91,11 +91,3 @@ window.electronAPI.onLoadTabData((tabId, data) => {
 });
 
 window.addEventListener('beforeunload', () => saveTabData());
-
-window.electronAPI.onInitOS((OS) => {
-    const body = document.body;
-    document.body.classList.add(OS);
-    if (OS === 'mac') body.classList.add('mac');
-    if (OS === 'windows') body.classList.add('windows');
-    console.log('BOO BOO BA BA IT WORKING');
-});

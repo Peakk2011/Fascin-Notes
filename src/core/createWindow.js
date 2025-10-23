@@ -11,10 +11,10 @@ export const createWindow = async () => {
         width: 600,
         height: 500,
         min: {
-            width: 800,
-            height: 600,
+            width: 600,
+            height: 500,
         },
-    }
+    };
 
     const windowOptions = {
         width: windowSizeConfig.width,
@@ -22,23 +22,19 @@ export const createWindow = async () => {
         minWidth: windowSizeConfig.min.width,
         minHeight: windowSizeConfig.min.height,
         title: `NoteAPP (${config.name})`,
-        // icon: config.icon || undefined,  
-        // titleBarStyle: 'hiddenInset',
-        // titleBarOverlay: {
-        //     color: '#ffffff',
-        //     symbolColor: '#0f0f0f',
-        //     height: 36
-        // },
-        /*
-            I cannot send the ipc across frontend and the main process to direct OS-specific
-            Like add class like body.mac or body.windows and the main process on windowOptions
-            So I comment this out for now next day I going to do it again
-
-            Today I making:
-            - Tabs Feature
-            - Main process Components
-
-        */
+        icon: config.icon || undefined,
+        // OS-specific titlebar styles
+        ...(OS === 'darwin' && {
+            titleBarStyle: 'hiddenInset',
+        }),
+        ...(OS === 'win32' && {
+            titleBarStyle: 'hidden',
+            titleBarOverlay: {
+                color: '#1f1f1f',
+                symbolColor: '#ffffff',
+                height: 36
+            },
+        }),
         webPreferences: {
             preload: resolvePath('../preload.js'),
             contextIsolation: true,
@@ -53,33 +49,42 @@ export const createWindow = async () => {
     console.log('OS:', OS);
     console.log('windowOptions:', windowOptions);
 
-
     // Load tabbar.html
-    await mainWindow.loadFile(resolvePath('../renderer/tabbar.html'));
-    config.setup(mainWindow);
+    await Promise.all([
+        mainWindow.loadFile(resolvePath('../renderer/tabbar.html')),
+        Promise.resolve(config.setup?.(mainWindow))
+    ]);
+
+    // Send OS to renderer (frontend)
+    mainWindow.webContents.once('did-finish-load', () => {
+        mainWindow.webContents.send('init-os', OS);
+    });
 
     // TabManager
     const tabs = new TabManager(mainWindow);
     tabs.createTab('Welcome');
 
     // IPC for renderer tabbar
-    ipcMain.on('new-tab', (e, title) => tabs.createTab(title));
+    ipcMain.on(
+        'new-tab',
+        (e, title) => {
+            tabs.createTab(title);
+        }
+    );
 
     ipcMain.on('switch-tab', (e, index) => {
         if (tabs.tabs[index]) {
             tabs.setActiveTab(tabs.tabs[index]);
-        };
+        }
     });
 
     ipcMain.on('close-tab', (e, index) => {
-        // Tabs need to be tabManager instance
-        if (tabs && typeof tabs.closeTabByIndex === 'function') {
+        if (tabs?.closeTabByIndex) {
             tabs.closeTabByIndex(index);
         } else {
             console.error('TabManager not ready or closeTabByIndex missing');
         }
     });
-
 
     ipcMain.on('reorder-tabs', (e, fromIndex, toIndex) => {
         tabs.reorderTabs(fromIndex, toIndex);
@@ -87,8 +92,12 @@ export const createWindow = async () => {
 
     mainWindow.on('resize', () => tabs.layoutActiveTab());
 
-    mainWindow.webContents.once('did-finish-load', () => {
-        mainWindow.webContents.send('init-os', OS);
+    // Cleanup listeners เมื่อปิด window
+    mainWindow.once('closed', () => {
+        ipcMain.removeAllListeners('new-tab');
+        ipcMain.removeAllListeners('switch-tab');
+        ipcMain.removeAllListeners('close-tab');
+        ipcMain.removeAllListeners('reorder-tabs');
     });
 
     return { mainWindow, tabs };
