@@ -1,3 +1,11 @@
+/* 
+    Made by Mint teams
+    Fascin-Notes
+    This file part is from Fascin-Notes
+
+    Updated: 2025-24-10
+    License: MIT
+*/
 
 .status {
     font-size: 14px;
@@ -46,7 +54,7 @@ textarea {
     padding: 1.2rem 0.85rem;
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 16px;
-    line-height: 1.15;
+    line-height: 1.3;
     resize: none;
     outline: none;
     border: none;

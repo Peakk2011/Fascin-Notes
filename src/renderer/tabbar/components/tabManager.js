@@ -37,7 +37,16 @@ export class TabManager {
         return tabEl;
     }
 
-    createTab(title = `Tab ${this.nextId}`) {
+    createTab(title = 'New Tab', setActive = true) {
+        const isSmallScreen = window.innerWidth <= 600;
+        const tabLimit = 7;
+
+        if (isSmallScreen && this.tabOrder.length >= tabLimit) {
+            // Tab Limit for Screen that lower than 600px (default window settings)
+            alert('Please resize your screen to create more tabs.');
+            return;
+        }
+
         const id = this.getNewId();
         const tabEl = this.createTabElement(id, title);
 
@@ -58,7 +67,11 @@ export class TabManager {
         this.tabs[id] = tabEl;
         this.tabOrder.push(id);
 
-        this.switchTab(id);
+        // Set active if setActive come to true
+        if (setActive) {
+            this.switchTab(id);
+        }
+
         window.electronAPI.newTab(title);
 
         return id;
@@ -67,14 +80,19 @@ export class TabManager {
     switchTab(id) {
         if (!this.tabs[id] || this.activeTabId === id) return;
 
-        requestAnimationFrame(() => {
-            Object.values(this.tabs).forEach(t => t.classList.remove('active'));
-            this.tabs[id].classList.add('active');
-            this.activeTabId = id;
+        setTimeout(() => {
+            Object.values(this.tabs).forEach(t => {
+                if (t) t.classList.remove('active');
+            });
 
-            const index = this.tabOrder.indexOf(id);
-            window.electronAPI.switchTab(index);
-        });
+            if (this.tabs[id]) {
+                this.tabs[id].classList.add('active');
+                this.activeTabId = id;
+
+                const index = this.tabOrder.indexOf(id);
+                window.electronAPI.switchTab(index);
+            }
+        }, 10);
     }
 
     closeTab(id) {
@@ -85,20 +103,28 @@ export class TabManager {
 
         tabEl.classList.add('tab-closing-animation');
 
-        tabEl.addEventListener('animationend', () => {
+        const onAnimationEnd = () => {
+            tabEl.removeEventListener('animationend', onAnimationEnd);
             tabEl.remove();
             delete this.tabs[id];
             this.tabOrder.splice(index, 1);
             this.releaseId(id);
 
-            // Switch to next tab
-            if (this.tabOrder.length > 0) {
-                const nextId = this.tabOrder[Math.max(0, index - 1)];
-                this.switchTab(nextId);
+            if (this.tabOrder.length === 0) {
+                console.log('Last tab closed, closing app');
+                window.electronAPI.closeApp();
+                return;
             }
 
+            // Switch to next tab
+            const nextId = this.tabOrder[Math.max(0, index - 1)];
+            console.log('Switching to next tab:', nextId);
+            this.switchTab(nextId);
+
             window.electronAPI.closeTab(index);
-        }, { once: true });
+        };
+
+        tabEl.addEventListener('animationend', onAnimationEnd, { once: true });
     }
 
     reorderTabs(fromIndex, toIndex) {
@@ -127,5 +153,16 @@ export class TabManager {
 
     getActiveTabId() {
         return this.activeTabId;
+    }
+
+    updateTabTitle(id, newTitle) {
+        if (this.tabs[id]) {
+            const titleSpan = this.tabs[id].querySelector('.tab-title');
+            titleSpan.textContent = newTitle;
+        }
+    }
+
+    closeApp() {
+        window.electronAPI.closeApp();
     }
 }

@@ -12,24 +12,26 @@
 
 <body class="">
 
-    <div class="status">
-        <div
-            class="dot"
-            id="saveIndicator">
+    <div id="app">
+        <div class="status">
+            <div
+                class="dot"
+                id="saveIndicator">
+            </div>
+            <span id="statusText">Saved</span>
         </div>
-        <span id="statusText">Saved</span>
-    </div>
 
-    <div class="textarea-container">
-        <textarea id="autoSaveTextarea" placeholder="Start write your texts here" spellcheck="false"></textarea>
+        <div class="textarea-container">
+            <textarea id="autoSaveTextarea" placeholder="Start write your texts here" spellcheck="false"></textarea>
 
-        <div class="zoom-controls">
-            <button
-                onclick="resetZoom()"
-                id="reset-zoom"
-                title="Reset Zoom">
-                <span>Reset Text Sizes</span>
-            </button>
+            <div class="zoom-controls">
+                <button
+                    onclick="resetZoom()"
+                    id="reset-zoom"
+                    title="Reset Zoom">
+                    <span>Reset Text Sizes</span>
+                </button>
+            </div>
         </div>
     </div>
 

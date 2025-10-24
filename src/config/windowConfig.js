@@ -21,7 +21,11 @@ export const getWindowConfig = () => {
         title: `NoteAPP (${config.name})`,
         icon: config.icon || undefined,
         ...(OS === 'darwin' && {
-            titleBarStyle: 'hiddenInset'
+            titleBarStyle: 'hiddenInset',
+            transparent: true,
+            vibrancy: 'sidebar',
+            visualEffectState: 'active',
+            hasShadow: true,
         }),
         ...(OS === 'win32' && {
             titleBarStyle: 'hidden',

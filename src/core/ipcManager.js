@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
 import { OS } from '../config/osConfig.js';
 
 /**
@@ -59,6 +59,10 @@ export class IpcManager {
         this.registerHandler('reorder-tabs', (event, from, to) => {
             this.tabManager.reorderTabs(from, to);
         });
+
+        this.registerHandler('close-app', (event) => {
+            app.quit();
+        });
     }
 
     setTabManager(tabManager) {
@@ -84,7 +88,7 @@ export class IpcManager {
         for (const [channel] of this.handlers) {
             ipcMain.removeAllListeners(channel);
         }
-        
+
         this.handlers.clear();
         ipcMain.removeHandler('get-os');
     }

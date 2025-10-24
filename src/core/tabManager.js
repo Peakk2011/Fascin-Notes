@@ -52,7 +52,7 @@ export class TabManager {
     layoutActiveTab() {
         if (!this.activeTab) { return; }
         const [width, height] = this.mainWindow.getContentSize();
-        this.activeTab.view.setBounds({ x: 0, y: 36, width, height: height - 36 });
+        this.activeTab.view.setBounds({ x: 0, y: 38, width, height: height - 38 });
         this.activeTab.view.setAutoResize({ width: true, height: true });
     }
 

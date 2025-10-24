@@ -98,12 +98,10 @@
 
 html {
     font-size: var(--font-size-base);
-    background-color: var(--theme-bg);
     color: var(--theme-fg);
 }
 
 body {
-    background-color: var(--theme-bg);
     color: var(--theme-fg);
     line-height: var(--line-height);
 }

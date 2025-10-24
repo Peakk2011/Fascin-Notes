@@ -1,4 +1,20 @@
+/* 
+    Made by Mint teams
+    Fascin-Notes
+    This file part is from Fascin-Notes
+
+    Updated: 2025-24-10
+    License: MIT
+*/
+
 /* Tabbar Styles */
+
+html {
+    background-color: transparent !important;
+    border-bottom: solid 1px var(--theme-border);
+    height: 38px;
+}
+
 body {
     margin: 0;
     padding: 0;
@@ -9,85 +25,124 @@ body {
     -webkit-app-region: drag;
     display: flex;
     align-items: center;
-    height: 36px;
-    background-color: var(--theme-bg);
+    height: 38px;
     -webkit-user-select: none;
-    overflow-x: auto;
+    overflow: hidden;
     position: fixed;
     right: 0;
     top: 0;
     width: 100%;
 }
 
-.tab {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 0.75rem;
-    cursor: pointer;
-    user-select: none;
-    -webkit-user-select: none;
-    font-size: 14px;
-    min-width: 120px;
-    max-width: 260px;
-    height: 100%;
-    transition: all 200ms cubic-bezier(0.86, 0, 0.07, 1);
-    -webkit-app-region: no-drag;
-    border-bottom: solid 1px transparent;
-}
-
-.tab.active {
-    background: var(--PrimaryButtonsColors);
-    border-bottom: solid 1px var(--theme-border);
-}
-
-.tab:hover {
-    filter: brightness(1.2);
-}
-
-.tab .close {
-    margin-left: 12px;
-    font-weight: 200;
-    font-size: 24px;
-    cursor: pointer;
-    padding-top: 0.1rem;
-    -webkit-app-region: no-drag;
-}
-
-.tab .close:hover {
-    color: #ff4444;
-}
-
 #addTab {
-    margin-left: auto;
     padding: 0 1rem;
     cursor: pointer;
-    font-size: 20px;
+    font-size: 24px;
     font-weight: 400;
     user-select: none;
     -webkit-user-select: none;
     -webkit-app-region: no-drag;
-    height: 100%;
     display: flex;
     align-items: center;
+    height: 38px;
+
+    position: sticky;
+    right: 0;
+    top: 0;
+    z-index: 10;
+    opacity: 80%;
+
+    background-color: transparent;
+    transition: background-color 200ms ease;
 }
 
 #addTab:hover {
-    filter: brightness(1.2);
+    opacity: 100%;
+}
+
+/* 
+    body:has(.tab ~ .tab) #addTab {}
+    Direct .tab enter to the addTab if you want to style
+*/
+
+#tabbar::before {
+    content: '';
+    display: block;
+    width: calc(100% - 60px);
+
+    position: absolute;
+    left: 0;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 0.8rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    font-size: 14px;
+    height: calc(38px + 1px);
+    transition: all 200ms cubic-bezier(0.86, 0, 0.07, 1);
+    -webkit-app-region: no-drag;
+
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: 180px;
+
+    border-right: solid 1px transparent;
+    border-left: solid 1px transparent;
+}
+
+.tab.active {
+    background: var(--theme-bg);
+    border-right: solid 1px var(--theme-border);
+    border-left: solid 1px var(--theme-border);
+}
+
+.tab:not(.active):hover {
+    background-color: var(--HoverColor);
+}
+
+.tab-title {
+    font-family: var(--font-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+}
+
+.tab .close {
+    margin-left: 14px;
+    font-weight: 200;
+    font-size: 26px;
+    cursor: pointer;
+    padding-top: 0rem;
+    -webkit-app-region: no-drag;
+    flex-shrink: 0;
+}
+
+.tab .close:hover {
+    background-color: var(--HoverColor);
 }
 
 /* OS Tabbar Style */
+
 body.darwin #tabbar {
-    padding-left: 80px;
-    width: 100%;
+    padding-left: 78px;
+    padding-right: 2.5rem;
 }
 
-body.win32 #tabbar {
-    width: 100%;
+body.win32 .tab {
+    max-width: calc((100% - 60px) / 1);
 }
 
-body.linux #tabbar {
-    width: 100%;
+body.linux .tab {
+    max-width: calc((100% - 60px) / 1);
 }
 
 /* Tab Open Animation */
@@ -95,7 +150,7 @@ body.linux #tabbar {
 @keyframes tab-merge-in {
     from {
         opacity: 0;
-        transform: translateY(-30px);
+        transform: translateY(30px);
     }
 
     to {
@@ -119,18 +174,30 @@ body.linux #tabbar {
 }
 
 .tab-closing-animation {
-    animation: tab-close 150ms cubic-bezier(0.2, 0, 0, 1);
+    animation: tab-close 300ms cubic-bezier(0.075, 0.82, 0.165, 1);
 }
 
-.tab[draggable="true"]:hover {
-    cursor: grab;
+/* Responsive */
+@media screen and (max-width: 720px) {
+    #addTab {
+        font-size: 22px;
+    }
+
+    #tabbar::before {
+        width: calc(100% - 50px);
+    }
 }
 
-.tab[draggable="true"]:active {
-    cursor: grabbing;
-}
+@media screen and (max-width: 600px) {
+    #addTab {
+        font-size: 20px;
+    }
 
-.tab.dragging {
-    opacity: 0.5;
-    transform: scale(0.95);
+    #tabbar::before {
+        width: calc(100% - 40px);
+    }
+
+    .tab .close {
+        margin-left: 8px;
+    }
 }

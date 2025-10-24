@@ -7,6 +7,7 @@ try {
         closeTab: (index) => ipcRenderer.send('close-tab', index),
         reorderTabs: (from, to) => ipcRenderer.send('reorder-tabs', from, to),
         getOS: () => ipcRenderer.invoke('get-os'),
+        closeApp: () => ipcRenderer.send('close-app')
     });
     // console.log('electronAPI exposed successfully');
 } catch (error) {
