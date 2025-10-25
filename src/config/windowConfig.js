@@ -30,7 +30,7 @@ export const getWindowConfig = () => {
         ...(OS === 'win32' && {
             titleBarStyle: 'hidden',
             titleBarOverlay: {
-                color: '#1f1f1f',
+                color: '#121212',
                 symbolColor: '#ffffff',
                 height: 36
             }

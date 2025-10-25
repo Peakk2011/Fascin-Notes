@@ -11,12 +11,12 @@ export class KeyboardManager {
         const isMac = document.body.classList.contains('darwin');
         const modifier = isMac ? e.metaKey : e.ctrlKey;
 
-        if (modifier && e.key === 't') {
+        if (modifier && e.code === 'KeyT') {
             e.preventDefault();
             this.tabManager.createTab();
         }
 
-        if (modifier && e.key === 'w') {
+        if (modifier && e.code === 'KeyW') {
             e.preventDefault();
             const activeId = this.tabManager.getActiveTabId();
             if (activeId !== null) {

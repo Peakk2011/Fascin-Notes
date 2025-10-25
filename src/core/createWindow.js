@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 import { TabManager } from './tabManager.js';
 import { IpcManager } from './ipcManager.js';
+import { registerTabShortcuts, unregisterTabShortcuts } from './registerTabShortcuts.js';
 import { getWindowConfig } from '../config/windowConfig.js';
 import { resolvePath } from '../utils/paths.js';
 import { osConfig, OS } from '../config/osConfig.js';
@@ -20,6 +21,9 @@ export const createWindow = async () => {
     const tabManager = new TabManager(mainWindow);
     ipcManager.setTabManager(tabManager);
 
+    // Register keyboard shortcuts
+    registerTabShortcuts(mainWindow, tabManager);
+
     // DevTools
     if (!import.meta.env?.PROD) {
         mainWindow.webContents.openDevTools({ mode: 'detach' });
@@ -38,6 +42,8 @@ export const createWindow = async () => {
     mainWindow.on('resize', () => tabManager.layoutActiveTab());
     mainWindow.once('closed', () => {
         ipcManager.cleanup();
+        tabManager.destroy();
+        unregisterTabShortcuts();
     });
 
     return {

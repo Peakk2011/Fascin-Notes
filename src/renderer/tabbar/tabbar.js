@@ -19,6 +19,11 @@ export const tabbar = () => {
 
     // Create first tab
     tabManager.createTab('Welcome');
+
+    // debug check if data send to main process
+    // console.log('Tabbar initialized, waiting for main process updates...');
+
+    return tabManager;
 };
 
 if (document.readyState === 'loading') {

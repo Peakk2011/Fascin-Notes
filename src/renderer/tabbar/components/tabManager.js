@@ -7,6 +7,58 @@ export class TabManager {
         this.freeIds = [];
         this.nextId = 1;
         this.activeTabId = null;
+        // Listen from Main process
+        this.setupIPCListeners();
+    }
+
+    setupIPCListeners() {
+        window.electronAPI.onTabsUpdated((data) => {
+            this.syncWithMainProcess(data);
+        });
+    }
+    
+    syncWithMainProcess(data) {
+        const { tabs, activeIndex } = data;
+        
+        // Clean up all the tabs
+        this.tabOrder.forEach(id => {
+            if (this.tabs[id]) {
+                this.tabs[id].remove();
+                delete this.tabs[id];
+            }
+        });
+        
+        this.tabOrder = [];
+        this.freeIds = [];
+        this.nextId = 1;
+        this.activeTabId = null;
+
+        tabs.forEach((tab, index) => {
+            const id = this.getNewId();
+            const tabEl = this.createTabElement(id, tab.title);
+            
+            this.tabbar.insertBefore(tabEl, this.addBtn);
+            this.tabs[id] = tabEl;
+            this.tabOrder.push(id);
+
+            // Event listender
+            tabEl.querySelector('.close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeTab(id);
+            }, { passive: true });
+
+            tabEl.addEventListener('click', () => this.switchTab(id), { passive: true });
+
+            tabEl.addEventListener('animationend', () => {
+                tabEl.classList.remove('tab-merge-animation');
+            }, { once: true });
+        });
+
+        // Active tab
+        if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
+            const activeId = this.tabOrder[activeIndex];
+            this.switchTab(activeId);
+        }
     }
 
     getNewId() {
@@ -42,9 +94,8 @@ export class TabManager {
         const tabLimit = 7;
 
         if (isSmallScreen && this.tabOrder.length >= tabLimit) {
-            // Tab Limit for Screen that lower than 600px (default window settings)
             alert('Please resize your screen to create more tabs.');
-            return;
+            return null;
         }
 
         const id = this.getNewId();
@@ -67,13 +118,12 @@ export class TabManager {
         this.tabs[id] = tabEl;
         this.tabOrder.push(id);
 
-        // Set active if setActive come to true
+        // Set active if setActive is true
         if (setActive) {
             this.switchTab(id);
         }
 
         window.electronAPI.newTab(title);
-
         return id;
     }
 
@@ -81,10 +131,7 @@ export class TabManager {
         if (!this.tabs[id] || this.activeTabId === id) return;
 
         setTimeout(() => {
-            Object.values(this.tabs).forEach(t => {
-                if (t) t.classList.remove('active');
-            });
-
+            Object.values(this.tabs).forEach(t => t?.classList.remove('active'));
             if (this.tabs[id]) {
                 this.tabs[id].classList.add('active');
                 this.activeTabId = id;
@@ -111,14 +158,12 @@ export class TabManager {
             this.releaseId(id);
 
             if (this.tabOrder.length === 0) {
-                console.log('Last tab closed, closing app');
                 window.electronAPI.closeApp();
                 return;
             }
 
             // Switch to next tab
             const nextId = this.tabOrder[Math.max(0, index - 1)];
-            console.log('Switching to next tab:', nextId);
             this.switchTab(nextId);
 
             window.electronAPI.closeTab(index);
@@ -164,5 +209,9 @@ export class TabManager {
 
     closeApp() {
         window.electronAPI.closeApp();
+    }
+
+    updateFromMainProcess(data) {
+        this.syncWithMainProcess(data);
     }
 }
