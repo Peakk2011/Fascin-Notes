@@ -2,43 +2,23 @@
 <html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NoteAPP</title>
-  <link rel="stylesheet" href="stylesheet/index.css">
-  <link rel="stylesheet" href="stylesheet/reset.css">
-  <link href="https://api.fontshare.com/v2/css?f[]=general-sans@200,201,300,301,400,401,500,501,600,601,700,701,1,2&f[]=satoshi@1,2&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NoteAPP</title>
+    <link rel="stylesheet" href="stylesheet/index.css">
+    <link rel="stylesheet" href="stylesheet/reset.css">
+    <link
+        href="https://api.fontshare.com/v2/css?f[]=general-sans@200,201,300,301,400,401,500,501,600,601,700,701,1,2&f[]=satoshi@1,2&display=swap"
+        rel="stylesheet">
 </head>
 
 <body class="">
 
-    <div id="app">
-        <div class="status">
-            <div
-                class="dot"
-                id="saveIndicator">
-            </div>
-            <span id="statusText">Saved</span>
-        </div>
+    <div id="app"></div>
 
-        <div class="textarea-container">
-            <textarea id="autoSaveTextarea" placeholder="Start write your texts here" spellcheck="false"></textarea>
-
-            <div class="zoom-controls">
-                <button
-                    onclick="resetZoom()"
-                    id="reset-zoom"
-                    title="Reset Zoom">
-                    <span>Reset Text Sizes</span>
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <script src="scripts/note.js" defer></script>
-    <script src="scripts/index.js" defer></script>
+    <script src="./renderer/content/app.js" type="module"></script>
     <script src="./entry/publicScript.js" defer></script>
-    
+
 </body>
 
 </html>
