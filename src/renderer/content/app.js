@@ -7,12 +7,9 @@ import { Page } from './page.js';
 const rootPath = '#app';
 
 const App = () => {
-    const init = {
-        html: Page.markups,
-    };
-
     Mint.init(async () => {
-        Mint.injectHTML(rootPath, init.html);
+        const html = await Page.markups();
+        Mint.injectHTML(rootPath, html);
 
         if (Page.init) {
             try {

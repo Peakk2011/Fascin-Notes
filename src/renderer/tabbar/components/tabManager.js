@@ -1,195 +1,253 @@
+import { Tab } from './tabs/tab.js';
+import { IdManager } from './tabs/idManager.js';
+import { TabIPCBridge } from './tabs/tabIPCBridge.js';
+import { TabValidator } from './tabs/tabValidator.js';
+
 export class TabManager {
     constructor(tabbar, addBtn) {
         this.tabbar = tabbar;
         this.addBtn = addBtn;
-        this.tabs = [];
+
+        // State
+        this.tabs = new Map();
         this.tabOrder = [];
-        this.freeIds = [];
-        this.nextId = 1;
         this.activeTabId = null;
-        // Listen from Main process
-        this.setupIPCListeners();
+        this.isDestroyed = false;
+
+        // Components
+        this.idManager = new IdManager();
+        this.ipcBridge = new TabIPCBridge();
+        this.validator = new TabValidator();
+
+        this.init();
     }
 
-    setupIPCListeners() {
-        window.electronAPI.onTabsUpdated((data) => {
-            this.syncWithMainProcess(data);
-        });
+    init() {
+        this.setupIPC();
+        this.setupEventListeners();
     }
-    
-    syncWithMainProcess(data) {
-        const { tabs, activeIndex } = data;
-        
-        // Clean up all the tabs
-        this.tabOrder.forEach(id => {
-            if (this.tabs[id]) {
-                this.tabs[id].remove();
-                delete this.tabs[id];
+
+    setupIPC() {
+        this.ipcBridge.init();
+        this.ipcBridge.onTabsUpdated((data) => {
+            if (!this.isDestroyed) {
+                this.syncWithMainProcess(data);
             }
         });
-        
-        this.tabOrder = [];
-        this.freeIds = [];
-        this.nextId = 1;
-        this.activeTabId = null;
-
-        tabs.forEach((tab, index) => {
-            const id = this.getNewId();
-            const tabEl = this.createTabElement(id, tab.title);
-            
-            this.tabbar.insertBefore(tabEl, this.addBtn);
-            this.tabs[id] = tabEl;
-            this.tabOrder.push(id);
-
-            // Event listender
-            tabEl.querySelector('.close').addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.closeTab(id);
-            }, { passive: true });
-
-            tabEl.addEventListener('click', () => this.switchTab(id), { passive: true });
-
-            tabEl.addEventListener('animationend', () => {
-                tabEl.classList.remove('tab-merge-animation');
-            }, { once: true });
-        });
-
-        // Active tab
-        if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
-            const activeId = this.tabOrder[activeIndex];
-            this.switchTab(activeId);
-        }
     }
 
-    getNewId() {
-        return this.freeIds.length > 0 ? this.freeIds.shift() : this.nextId++;
-    }
+    setupEventListeners() {
+        if (!this.addBtn) return;
 
-    releaseId(id) {
-        this.freeIds.push(id);
-        this.freeIds.sort((a, b) => a - b);
-    }
-
-    createTabElement(id, title) {
-        const tabEl = document.createElement('div');
-        tabEl.classList.add('tab', 'tab-merge-animation');
-        tabEl.setAttribute('draggable', 'true');
-        tabEl.dataset.id = id;
-
-        const titleSpan = document.createElement('span');
-        titleSpan.textContent = title;
-        titleSpan.classList.add('tab-title');
-
-        const closeBtn = document.createElement('span');
-        closeBtn.textContent = '×';
-        closeBtn.classList.add('close');
-
-        tabEl.appendChild(titleSpan);
-        tabEl.appendChild(closeBtn);
-        return tabEl;
+        this.addBtn.addEventListener('click', () => {
+            if (!this.isDestroyed) {
+                this.createTab();
+            }
+        }, { passive: true });
     }
 
     createTab(title = 'New Tab', setActive = true) {
-        const isSmallScreen = window.innerWidth <= 600;
-        const tabLimit = 7;
-
-        if (isSmallScreen && this.tabOrder.length >= tabLimit) {
-            alert('Please resize your screen to create more tabs.');
+        if (this.isDestroyed || !this.tabbar) {
             return null;
         }
 
-        const id = this.getNewId();
-        const tabEl = this.createTabElement(id, title);
+        // Validate
+        const canCreate = this.validator.canCreateTab(this.tabOrder.length);
+        if (!canCreate.valid) {
+            alert(canCreate.reason);
+            return null;
+        }
 
-        // Event listeners
-        tabEl.querySelector('.close').addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.closeTab(id);
-        }, { passive: true });
+        const titleValidation = this.validator.validateTitle(title);
+        const sanitizedTitle = titleValidation.sanitized || title;
 
-        tabEl.addEventListener('click', () => this.switchTab(id), { passive: true });
+        // Create tab
+        const id = this.idManager.getNewId();
+        const tab = new Tab(id, sanitizedTitle);
 
-        tabEl.addEventListener('animationend', () => {
-            tabEl.classList.remove('tab-merge-animation');
-        }, { once: true });
+        // Setup callbacks
+        tab.onClose = (id) => this.closeTab(id);
+        tab.onClick = (id) => this.switchTab(id);
 
         // Add to DOM and state
-        this.tabbar.insertBefore(tabEl, this.addBtn);
-        this.tabs[id] = tabEl;
+        this.tabbar.insertBefore(tab.getElement(), this.addBtn);
+        this.tabs.set(id, tab);
         this.tabOrder.push(id);
 
-        // Set active if setActive is true
         if (setActive) {
             this.switchTab(id);
         }
 
-        window.electronAPI.newTab(title);
+        // Notify IPC
+        this.ipcBridge.notifyNewTab(sanitizedTitle);
+
         return id;
     }
 
     switchTab(id) {
-        if (!this.tabs[id] || this.activeTabId === id) return;
+        if (this.isDestroyed || !this.tabs.has(id) || this.activeTabId === id) {
+            return;
+        }
 
-        setTimeout(() => {
-            Object.values(this.tabs).forEach(t => t?.classList.remove('active'));
-            if (this.tabs[id]) {
-                this.tabs[id].classList.add('active');
-                this.activeTabId = id;
+        try {
+            // Deactivate all
+            this.tabs.forEach(tab => tab.setActive(false));
 
-                const index = this.tabOrder.indexOf(id);
-                window.electronAPI.switchTab(index);
+            // Activate selected
+            const tab = this.tabs.get(id);
+            tab.setActive(true);
+            this.activeTabId = id;
+
+            // Notify IPC
+            const index = this.tabOrder.indexOf(id);
+            if (index !== -1) {
+                this.ipcBridge.notifySwitchTab(index);
             }
-        }, 10);
+        } catch (error) {
+            console.error('Error switching tab:', error);
+        }
     }
 
-    closeTab(id) {
-        if (!this.tabs[id]) return;
+    async closeTab(id) {
+        if (this.isDestroyed || !this.tabs.has(id)) {
+            return;
+        }
 
-        const index = this.tabOrder.indexOf(id);
-        const tabEl = this.tabs[id];
+        try {
+            const index = this.tabOrder.indexOf(id);
+            const tab = this.tabs.get(id);
 
-        tabEl.classList.add('tab-closing-animation');
+            // Close with animation
+            await tab.close();
 
-        const onAnimationEnd = () => {
-            tabEl.removeEventListener('animationend', onAnimationEnd);
-            tabEl.remove();
-            delete this.tabs[id];
+            // Update state
+            this.tabs.delete(id);
             this.tabOrder.splice(index, 1);
-            this.releaseId(id);
+            this.idManager.releaseId(id);
 
+            // Check if all tabs closed
             if (this.tabOrder.length === 0) {
-                window.electronAPI.closeApp();
+                this.ipcBridge.notifyCloseApp();
                 return;
             }
 
-            // Switch to next tab
-            const nextId = this.tabOrder[Math.max(0, index - 1)];
-            this.switchTab(nextId);
+            // Switch to adjacent tab
+            const nextIndex = Math.min(index, this.tabOrder.length - 1);
+            if (nextIndex >= 0) {
+                this.switchTab(this.tabOrder[nextIndex]);
+            }
 
-            window.electronAPI.closeTab(index);
-        };
-
-        tabEl.addEventListener('animationend', onAnimationEnd, { once: true });
+            // Notify IPC
+            this.ipcBridge.notifyCloseTab(index);
+        } catch (error) {
+            console.error('Error closing tab:', error);
+        }
     }
 
     reorderTabs(fromIndex, toIndex) {
-        const id = this.tabOrder[fromIndex];
-        this.tabOrder.splice(fromIndex, 1);
-        this.tabOrder.splice(toIndex, 0, id);
+        if (this.isDestroyed) return;
 
-        const draggedTab = this.tabs[id];
-        const nextElement = toIndex < this.tabOrder.length - 1 ?
-            this.tabs[this.tabOrder[toIndex + 1]] : this.addBtn;
+        const isValid = this.validator.validateReorder(
+            fromIndex,
+            toIndex,
+            this.tabOrder.length
+        );
 
-        this.tabbar.insertBefore(draggedTab, nextElement);
+        if (!isValid) return;
 
-        // Animation
-        draggedTab.classList.add('tab-merge-animation');
-        draggedTab.addEventListener('animationend', () => {
-            draggedTab.classList.remove('tab-merge-animation');
-        }, { once: true });
+        try {
+            // Reorder in state
+            const id = this.tabOrder[fromIndex];
+            this.tabOrder.splice(fromIndex, 1);
+            this.tabOrder.splice(toIndex, 0, id);
 
-        window.electronAPI.reorderTabs(fromIndex, toIndex);
+            // Reorder in DOM
+            const tab = this.tabs.get(id);
+            const nextElement = toIndex < this.tabOrder.length - 1 ?
+                this.tabs.get(this.tabOrder[toIndex + 1]).getElement() :
+                this.addBtn;
+
+            if (this.tabbar && nextElement) {
+                this.tabbar.insertBefore(tab.getElement(), nextElement);
+            }
+
+            // Animation
+            tab.addMergeAnimation();
+
+            // Notify IPC
+            this.ipcBridge.notifyReorderTabs(fromIndex, toIndex);
+        } catch (error) {
+            console.error('Error reordering tabs:', error);
+        }
+    }
+
+    syncWithMainProcess(data) {
+        if (this.isDestroyed || !data) {
+            return;
+        };
+
+        try {
+            const { tabs, activeIndex } = data;
+
+            // Clean up
+            this.cleanupAllTabs();
+
+            if (Array.isArray(tabs)) {
+                tabs.forEach((tabData, index) => {
+                    if (!tabData || !tabData.title) return;
+
+                    const canCreate = this.validator.canCreateTab(this.tabOrder.length);
+                    if (!canCreate.valid) {
+                        console.warn(`Tab limit reached. Skipping tab: ${tabData.title}`);
+                        return;
+                    }
+
+                    const id = this.idManager.getNewId();
+                    const tab = new Tab(id, tabData.title);
+
+                    tab.onClose = (id) => this.closeTab(id);
+                    tab.onClick = (id) => this.switchTab(id);
+
+                    this.tabbar.insertBefore(tab.getElement(), this.addBtn);
+                    this.tabs.set(id, tab);
+                    this.tabOrder.push(id);
+                });
+
+                // Set active tab
+                if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
+                    this.switchTab(this.tabOrder[activeIndex]);
+                } else if (this.tabOrder.length > 0) {
+                    this.switchTab(this.tabOrder[0]);
+                }
+            }
+        } catch (error) {
+            console.error('Error syncing with main process:', error);
+        }
+    }
+    cleanupAllTabs() {
+        try {
+            this.tabs.forEach((tab) => {
+                const element = tab.getElement();
+                if (element && element.parentNode === this.tabbar) {
+                    element.remove();
+                }
+            });
+
+            this.tabs.clear();
+            this.tabOrder = [];
+            this.activeTabId = null;
+        } catch (error) {
+            console.error('Error cleaning up tabs:', error);
+        }
+    }
+
+    // Utility methods
+    updateTabTitle(id, newTitle) {
+        if (this.isDestroyed || !this.tabs.has(id)) return;
+
+        const validation = this.validator.validateTitle(newTitle);
+        const tab = this.tabs.get(id);
+        tab.updateTitle(validation.sanitized || newTitle);
     }
 
     getTabOrder() {
@@ -200,18 +258,41 @@ export class TabManager {
         return this.activeTabId;
     }
 
-    updateTabTitle(id, newTitle) {
-        if (this.tabs[id]) {
-            const titleSpan = this.tabs[id].querySelector('.tab-title');
-            titleSpan.textContent = newTitle;
+    hasTab(id) {
+        return this.tabs.has(id);
+    }
+
+    getTabCount() {
+        return this.tabOrder.length;
+    }
+
+    getTabInfo(id) {
+        const tab = this.tabs.get(id);
+        if (!tab) return null;
+
+        return {
+            ...tab.getInfo(),
+            index: this.tabOrder.indexOf(id)
+        };
+    }
+
+    destroy() {
+        this.isDestroyed = true;
+
+        try {
+            // Remove add button listener
+            if (this.addBtn) {
+                this.addBtn.replaceWith(this.addBtn.cloneNode(true));
+            }
+
+            // Clean up all tabs
+            this.cleanupAllTabs();
+
+            // Reset components
+            this.idManager.reset();
+
+        } catch (error) {
+            console.error('Error during destruction:', error);
         }
-    }
-
-    closeApp() {
-        window.electronAPI.closeApp();
-    }
-
-    updateFromMainProcess(data) {
-        this.syncWithMainProcess(data);
     }
 }

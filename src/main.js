@@ -15,9 +15,8 @@ if (OS === 'win32' && process.argv.some(arg => arg.includes('--squirrel'))) {
 	app.quit();
 }
 
-app.whenReady().then(() => {
-	Menu.setApplicationMenu(Menu.buildFromTemplate([]));
-	createWindow();
+app.whenReady().then(async () => {
+	await createWindow();
 
 	app.on('activate', () => {
 		if (BrowserWindow.getAllWindows().length === 0) {

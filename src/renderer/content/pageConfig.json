@@ -1,0 +1,14 @@
+{
+    "statusContainerClass": "status",
+    "saveIndicatorId": "saveIndicator",
+    "saveIndicatorClass": "dot",
+    "statusTextId": "statusText",
+    "initialStatusText": "Saved",
+    "textareaContainerClass": "textarea-container",
+    "textareaId": "autoSaveTextarea",
+    "textareaPlaceholder": "Start write your texts here",
+    "zoomControlsClass": "zoom-controls",
+    "resetZoomButtonId": "reset-zoom",
+    "resetZoomButtonTitle": "Reset Zoom",
+    "resetZoomButtonText": "Reset Text Sizes"
+}

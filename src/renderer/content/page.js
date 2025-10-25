@@ -3,33 +3,44 @@
 // Use for index.html renderer (frontend)
 
 import { noteFeatures } from '../scripts/note.js';
+import { fetchJSON } from '../../utils/fetch.js';
+import { createModelFind } from './contentComponents/modelFind.js';
 
 export const Page = {
-    markups: `
-        <div class="status">
-            <div
-                class="dot"
-                id="saveIndicator">
+    async markups() {
+        const config = await fetchJSON(
+            'renderer/content/pageConfig.json'
+        );
+        const modelFind = await createModelFind();
+        
+        return `
+            <div class="${config.statusContainerClass}">
+                <div
+                    class="${config.saveIndicatorClass}"
+                    id="${config.saveIndicatorId}">
+                </div>
+                <span id="${config.statusTextId}">${config.initialStatusText}</span>
             </div>
-            <span id="statusText">Saved</span>
-        </div>
-
-        <div class="textarea-container">
-            <textarea id="autoSaveTextarea" placeholder="Start write your texts here" spellcheck="false"></textarea>
-
-            <div class="zoom-controls">
-                <button
-                    onclick="resetZoom()"
-                    id="reset-zoom"
-                    title="Reset Zoom">
-                    <span>Reset Text Sizes</span>
-                </button>
+    
+            <div class="${config.textareaContainerClass}">
+                <textarea id="${config.textareaId}" placeholder="${config.textareaPlaceholder}" spellcheck="false"></textarea>
+    
+                <div class="${config.zoomControlsClass}">
+                    <button
+                        id="${config.resetZoomButtonId}"
+                        title="${config.resetZoomButtonTitle}">
+                        <span>${config.resetZoomButtonText}</span>
+                    </button>
+                </div>
             </div>
-        </div>
-    `,
+            
+            ${modelFind.markups}
+        `;
+    },
 
     async init() {
         try {
+            const config = await fetchJSON('renderer/content/pageConfig.json');
             const noteAPI = await noteFeatures();
 
             if (!noteAPI) {
@@ -37,7 +48,7 @@ export const Page = {
             }
 
             // Reset zoom button
-            const resetBtn = document.getElementById('reset-zoom');
+            const resetBtn = document.getElementById(config.resetZoomButtonId);
             
             if (resetBtn) {
                 resetBtn.addEventListener('click', async () => {
@@ -48,6 +59,10 @@ export const Page = {
                     }
                 });
             }
+
+            // Initialize components
+            const modelFind = await createModelFind();
+            modelFind.init({ pageConfig: config, noteAPI });
 
             return noteAPI;
         } catch (error) {

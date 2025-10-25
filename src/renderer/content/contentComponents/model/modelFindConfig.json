@@ -1,0 +1,17 @@
+{
+    "modalId": "find-replace-modal",
+    "modalClass": "modal",
+    "contentClass": "modal-content",
+    "headerClass": "modal-header",
+    "title": "Find This Notes",
+    "closeButtonId": "close-modal-btn",
+    "closeButtonClass": "close-button",
+    "closeButtonContent": "&times;",
+    "bodyClass": "modal-body",
+    "findInputId": "find-input",
+    "findInputPlaceholder": "Type here to find your notes text",
+    "statusTextId": "find-status-text",
+    "statusNotFoundText": "No results found",
+    "findButtonId": "find-btn",
+    "findButtonText": "Find This Note"
+}
