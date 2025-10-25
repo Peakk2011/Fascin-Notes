@@ -4,7 +4,7 @@
 
 import { noteFeatures } from '../scripts/note.js';
 import { fetchJSON } from '../../utils/fetch.js';
-import { createModelFind } from './contentComponents/modelFind.js';
+import { createModelFind } from './contentComponents/model/modelFind.js';
 
 export const Page = {
     async markups() {

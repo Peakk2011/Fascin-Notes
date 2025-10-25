@@ -7,7 +7,7 @@ Mint.include('stylesheet/style-components/find.css');
 
 export const createModelFind = async () => {
     const config = await fetchJSON(
-        'renderer/content/contentComponents/modelFindConfig.json'
+        'renderer/content/contentComponents/model/modelFindConfig.json'
     );
 
     return {
