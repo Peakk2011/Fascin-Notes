@@ -38,7 +38,6 @@ export class TabIPCBridge {
     // Notify main process
     notifyNewTab(title) {
         if (!this.isAvailable) return;
-        window.electronAPI.newTab(title);
     }
 
     notifySwitchTab(index) {

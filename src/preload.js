@@ -9,16 +9,17 @@ try {
         getOS: () => ipcRenderer.invoke('get-os'),
         closeApp: () => ipcRenderer.send('close-app'),
 
+        sendShortcut: (action) => ipcRenderer.send('keyboard-shortcut', action),
+
         onTabsUpdated: (callback) => {
             const listener = (event, data) => callback(data);
             ipcRenderer.on('tabs-updated', listener);
 
             return () => {
                 ipcRenderer.removeListener('tabs-updated', listener);
-            }
+            };
         }
     });
-    // console.log('electronAPI exposed successfully');
 } catch (error) {
     console.error('Error in preload:', error);
 }

@@ -1,85 +1,157 @@
-import { globalShortcut } from 'electron';
+import { ipcMain } from 'electron';
 
-/**
- * Register global keyboard shortcuts for tab management
- * @param {BrowserWindow} mainWindow - The main window instance
- * @param {TabManager} tabManager - The tab manager instance
- */
+let isRegistered = false;
+let lastActionTime = 0;
+let actionInProgress = false;
+const throttleDelay = 300;
+
 export const registerTabShortcuts = (mainWindow, tabManager) => {
-    // Function to update UI with current tabs state
-    const updateTabsUI = () => {
-        mainWindow.webContents.send('tabs-updated', {
-            tabs: tabManager.tabs.map(t => ({ title: t.title })),
-            activeIndex: tabManager.tabs.indexOf(tabManager.activeTab)
-        });
-    };
-
-    // Ctrl+T / Cmd+T - New Tab
-    globalShortcut.register('CommandOrControl+T', () => {
-        tabManager.createTab('New Tab');
-        updateTabsUI();
-    });
-
-    // Ctrl+W / Cmd+W - Close Current Tab
-    globalShortcut.register('CommandOrControl+W', () => {
-        if (tabManager.activeTab) {
-            tabManager.closeTab(tabManager.activeTab);
-            updateTabsUI();
-        }
-    });
-
-    // Ctrl+Tab - Next Tab
-    globalShortcut.register('Control+Tab', () => {
-        if (tabManager.tabs.length === 0) return;
-
-        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
-        const nextIdx = (currentIdx + 1) % tabManager.tabs.length;
-
-        if (tabManager.tabs[nextIdx]) {
-            tabManager.setActiveTab(tabManager.tabs[nextIdx]);
-            updateTabsUI();
-        }
-    });
-
-    // Ctrl+Shift+Tab - Previous Tab
-    globalShortcut.register('Control+Shift+Tab', () => {
-        if (tabManager.tabs.length === 0) return;
-
-        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
-        const prevIdx = currentIdx - 1 < 0 ? tabManager.tabs.length - 1 : currentIdx - 1;
-
-        if (tabManager.tabs[prevIdx]) {
-            tabManager.setActiveTab(tabManager.tabs[prevIdx]);
-            updateTabsUI();
-        }
-    });
-
-    // Ctrl+1 to Ctrl+8 - Switch to specific tab (1-8)
-    for (let i = 1; i <= 8; i++) {
-        globalShortcut.register(`CommandOrControl+${i}`, () => {
-            const tabIndex = i - 1;
-            if (tabManager.tabs[tabIndex]) {
-                tabManager.setActiveTab(tabManager.tabs[tabIndex]);
-                updateTabsUI();
-            }
-        });
+    if (isRegistered) {
+        return;
     }
 
-    // Ctrl+9 - Switch to last tab
-    globalShortcut.register('CommandOrControl+9', () => {
-        const lastIdx = tabManager.tabs.length - 1;
-        if (lastIdx >= 0 && tabManager.tabs[lastIdx]) {
-            tabManager.setActiveTab(tabManager.tabs[lastIdx]);
+    if (!tabManager || !tabManager.tabs) {
+        console.error('TabManager is not ready!');
+        return;
+    }
+
+    const canExecute = () => {
+        const now = Date.now();
+
+        if (actionInProgress) {
+            return false;
+        }
+
+        if (now - lastActionTime < throttleDelay) {
+            return false;
+        }
+
+        lastActionTime = now;
+        return true;
+    };
+
+    const updateTabsUI = () => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return;
+        }
+
+        try {
+            mainWindow.webContents.send('tabs-updated', {
+                tabs: tabManager.tabs.map(
+                    t => ({
+                        title: t.title
+                    })
+                ),
+                activeIndex: tabManager.tabs.indexOf(tabManager.activeTab)
+            });
+        } catch (error) {
+            console.error('Error updating tabs UI:', error);
+        }
+    };
+
+    ipcMain.removeAllListeners('keyboard-shortcut');
+
+    // Register new handler
+    ipcMain.on('keyboard-shortcut', (event, action) => {
+        // Throttle check
+        if (!canExecute()) {
+            return;
+        }
+
+        // Flags
+        actionInProgress = true;
+
+        try {
+            switch (action.type) {
+                case 'new-tab':
+                    if (typeof tabManager.createTab === 'function') {
+                        tabManager.createTab('New Tab');
+                        console.log(' New tab created');
+                    } else {
+                        console.error('createTab method not found');
+                    }
+                    break;
+
+                case 'close-tab':
+                    if (tabManager.activeTab && typeof tabManager.closeTab === 'function') {
+                        // Check the left tabs
+                        if (tabManager.tabs.length <= 1) {
+                            // return; // Dont let me goooooo
+                        }
+
+                        tabManager.closeTab(tabManager.activeTab);
+                        console.log('Tab closed via shortcut');
+                    } else {
+                        console.warn('No active tab or closeTab method');
+                    }
+                    break;
+
+                case 'next-tab':
+                    if (tabManager.tabs && tabManager.tabs.length > 0) {
+                        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
+                        const nextIdx = (currentIdx + 1) % tabManager.tabs.length;
+                        if (tabManager.tabs[nextIdx] && typeof tabManager.setActiveTab === 'function') {
+                            tabManager.setActiveTab(tabManager.tabs[nextIdx]);
+                            // console.log(`Next tab: ${nextIdx}`);
+                        }
+                    }
+                    break;
+
+                case 'prev-tab':
+                    if (tabManager.tabs && tabManager.tabs.length > 0) {
+                        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
+                        const prevIdx = currentIdx - 1 < 0 ? tabManager.tabs.length - 1 : currentIdx - 1;
+                        if (tabManager.tabs[prevIdx] && typeof tabManager.setActiveTab === 'function') {
+                            tabManager.setActiveTab(tabManager.tabs[prevIdx]);
+                            // console.log(`Prev tab: ${prevIdx}`);
+                        }
+                    }
+                    break;
+
+                case 'switch-to-index':
+                    if (tabManager.tabs && tabManager.tabs[action.index] && typeof tabManager.setActiveTab === 'function') {
+                        tabManager.setActiveTab(tabManager.tabs[action.index]);
+                        // console.log(`Switch to tab: ${action.index}`);
+                    } else {
+                        console.warn(`Tab index ${action.index} not found`);
+                    }
+                    break;
+
+                case 'switch-to-last':
+                    if (tabManager.tabs && tabManager.tabs.length > 0 && typeof tabManager.setActiveTab === 'function') {
+                        const lastIdx = tabManager.tabs.length - 1;
+                        tabManager.setActiveTab(tabManager.tabs[lastIdx]);
+                        // console.log(`Switch to last tab: ${lastIdx}`);
+                    }
+                    break;
+
+                default:
+                    console.warn('Unknown action:', action.type);
+            }
+
             updateTabsUI();
+
+        } catch (error) {
+            console.error('Error executing shortcut:', error);
+        } finally {
+            // Release the lock after a short delay to allow UI to settle
+            setTimeout(() => {
+                actionInProgress = false;
+            }, 100);
         }
     });
-    
-}
 
-/**
- * Unregister all global shortcuts
- * Call this when the app is closing
- */
+    isRegistered = true;
+    // console.log('Tab shortcuts registered successfully');
+};
+
 export const unregisterTabShortcuts = () => {
-    globalShortcut.unregisterAll();
-}
+    if (!isRegistered) {
+        return;
+    }
+
+    ipcMain.removeAllListeners('keyboard-shortcut');
+    isRegistered = false;
+    lastActionTime = 0;
+    actionInProgress = false;
+};

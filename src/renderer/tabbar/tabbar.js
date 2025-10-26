@@ -8,26 +8,13 @@ export const tabbar = () => {
 
     // Initialize managers
     const tabManager = new TabManager(tabbar, addBtn);
-    const dragManager = new DragManager(tabManager);
-    const keyboardManager = new KeyboardManager(tabManager);
+    new DragManager(tabManager).init(tabbar);
+    new KeyboardManager().init();
 
-    // Setup event listeners
-    dragManager.init(tabbar);
-    keyboardManager.init();
-
-    addBtn.addEventListener('click', () => tabManager.createTab(), { passive: true });
-
-    // Create first tab
     tabManager.createTab('Welcome');
-
-    // debug check if data send to main process
-    // console.log('Tabbar initialized, waiting for main process updates...');
-
     return tabManager;
 };
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', tabbar);
-} else {
-    tabbar();
-}
+document.addEventListener('DOMContentLoaded', tabbar, {
+    once: true
+});
