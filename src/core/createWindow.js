@@ -1,6 +1,7 @@
 import { BrowserWindow } from "electron";
 import { TabManager } from './tabManager.js';
 import { IpcManager } from './ipcManager.js';
+import { TabStorage } from './tabStorage.js';
 import { 
     registerTabShortcuts,
     unregisterTabShortcuts
@@ -12,6 +13,7 @@ import { osConfig, OS } from '../config/osConfig.js';
 export const createWindow = async () => {
     const config = osConfig[OS] || osConfig.linux;
 
+    const tabStorage = new TabStorage();
     const ipcManager = new IpcManager(null);
     ipcManager.init();
 
@@ -19,13 +21,13 @@ export const createWindow = async () => {
     const mainWindow = new BrowserWindow(windowOptions);
 
     // Protect Ctrl+W/Cmd+W to closing the window
-    mainWindow.on('close', (e) => {
-        const tabCount = tabManager?.tabs?.length || 0;
-        if (tabCount > 1) {
-            e.preventDefault();
-            // console.log('Prevented window close multiple tabs are open');
-        }
-    });
+    // mainWindow.on('close', (e) => {
+    //     const tabCount = tabManager?.tabs?.length || 0;
+    //     if (tabCount > 1) {
+    //         e.preventDefault();
+    //         // console.log('Prevented window close multiple tabs are open');
+    //     }
+    // });
 
     // Protect the default shortcuts (DISABLE)
     // mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -51,7 +53,21 @@ export const createWindow = async () => {
         '../renderer/tabbar/tabbar.html'
     ));
 
-    tabManager.createTab('Welcome');
+    // Load saved tabs
+    const savedTabs = await tabStorage.loadTabs();
+    if (savedTabs && savedTabs.length > 0) {
+        console.log(`Restoring ${savedTabs.length} tabs.`);
+        savedTabs.forEach(tabInfo => {
+            const newTab = tabManager.createTab(tabInfo.title, false); // Create tab but don't activate yet
+            if (tabInfo.url) {
+                newTab.view.webContents.loadURL(tabInfo.url);
+            }
+        });
+        const activeIndex = savedTabs.findIndex(t => t.isActive);
+        tabManager.setActiveTab(tabManager.tabs[activeIndex] || tabManager.tabs[0]);
+    } else {
+        tabManager.createTab('Welcome');
+    }
 
     await new Promise(
         resolve => setTimeout(resolve, 200)
@@ -62,6 +78,10 @@ export const createWindow = async () => {
 
     mainWindow.on('resize', () => {
         tabManager.layoutActiveTab();
+    });
+    mainWindow.on('close', async () => {
+        const tabs = tabManager.getAllTabs();
+        await tabStorage.saveTabs(tabs, tabManager.getActiveTab());
     });
     mainWindow.once('closed', () => {
         unregisterTabShortcuts();

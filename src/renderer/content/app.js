@@ -1,6 +1,13 @@
 // This file is part of Fascin-Notes
 // Use for index.html renderer (frontend)
 
+/*
+Use Mintkit to build and this why we built this:
+    - Low bundle size
+    - Lightweight and fully optimize on this application
+    - Electron-optimized
+*/
+
 import { Mint } from '../../framework/mint.js';
 import { Page } from './page.js';
 
