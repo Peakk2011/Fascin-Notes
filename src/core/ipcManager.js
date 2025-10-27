@@ -75,7 +75,7 @@ export class IpcManager {
         this.handlers.set(channel, handler);
 
         ipcMain.on(channel, (event, ...args) => {
-            console.log(`IPC "${channel}" called with args:`, args);
+            // console.log(`IPC "${channel}" called with args:`, args);
             try {
                 handler(event, ...args);
             } catch (err) {
@@ -85,7 +85,9 @@ export class IpcManager {
     }
 
     cleanup() {
-        for (const [channel] of this.handlers) {
+        const channels = Array.from(this.handlers.keys());
+        for (let i = 0; i < channels.length; i++) {
+            const channel = channels[i];
             ipcMain.removeAllListeners(channel);
         }
 

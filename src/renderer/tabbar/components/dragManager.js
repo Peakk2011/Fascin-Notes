@@ -48,7 +48,9 @@ export class DragManager {
         if (!this.draggedEl) return;
 
         // Check this dragThreshold limit
-        const distance = Math.abs(e.clientX - this.startX);
+        const distance = Math.abs(
+            e.clientX - this.startX
+        );
 
         if (!this.isDragging && distance < this.dragThreshold) {
             return; // Not dragging
@@ -138,17 +140,8 @@ export class DragManager {
             tab.style.transition = '';
         });
 
-        // Style reset
-        this.draggedEl.style.position = '';
-        this.draggedEl.style.zIndex = '';
-        this.draggedEl.style.pointerEvents = '';
-        this.draggedEl.style.opacity = '';
-        this.draggedEl.style.left = '';
-        this.draggedEl.style.top = '';
-        this.draggedEl.style.width = '';
-        this.draggedEl.style.boxShadow = '';
-        this.draggedEl.style.transition = '';
-
+        // Reset styles
+        this.draggedEl.style.cssText = '';
         this.draggedEl = null;
         this.draggedId = null;
         this.hasReordered = false;
@@ -163,7 +156,9 @@ export class DragManager {
             const tab = tabs[i];
             const tabId = parseInt(tab.dataset.id);
 
-            if (tabId === this.draggedId) continue;
+            if (tabId === this.draggedId) {
+                continue;
+            }
 
             const rect = tab.getBoundingClientRect();
             const tabCenterX = rect.left + rect.width / 2;
@@ -172,7 +167,12 @@ export class DragManager {
                 const targetIndex = tabOrder.indexOf(tabId);
 
                 if (currentIndex !== targetIndex && currentIndex !== targetIndex - 1) {
-                    const newIndex = currentIndex < targetIndex ? targetIndex - 1 : targetIndex;
+                    let newIndex;
+                    if (currentIndex < targetIndex) {
+                        newIndex = targetIndex - 1;
+                    } else {
+                        newIndex = targetIndex;
+                    }
                     this.tabManager.reorderTabs(currentIndex, newIndex);
                     this.hasReordered = true;
                 }

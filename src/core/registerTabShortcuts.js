@@ -36,13 +36,18 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
         }
 
         try {
+            const mappedTabs = [];
+            for (let i = 0; i < tabManager.tabs.length; i++) {
+                mappedTabs.push({
+                    title: tabManager.tabs[i].title
+                });
+            }
+
             mainWindow.webContents.send('tabs-updated', {
-                tabs: tabManager.tabs.map(
-                    t => ({
-                        title: t.title
-                    })
-                ),
-                activeIndex: tabManager.tabs.indexOf(tabManager.activeTab)
+                tabs: mappedTabs,
+                activeIndex: tabManager.tabs.indexOf(
+                    tabManager.activeTab
+                )
             });
         } catch (error) {
             console.error('Error updating tabs UI:', error);
@@ -80,7 +85,7 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
                         }
 
                         tabManager.closeTab(tabManager.activeTab);
-                        console.log('Tab closed via shortcut');
+                        // console.log('Tab closed via shortcut');
                     } else {
                         console.warn('No active tab or closeTab method');
                     }
@@ -88,10 +93,14 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
 
                 case 'next-tab':
                     if (tabManager.tabs && tabManager.tabs.length > 0) {
-                        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
+                        const currentIdx = tabManager.tabs.indexOf(
+                            tabManager.activeTab
+                        );
                         const nextIdx = (currentIdx + 1) % tabManager.tabs.length;
                         if (tabManager.tabs[nextIdx] && typeof tabManager.setActiveTab === 'function') {
-                            tabManager.setActiveTab(tabManager.tabs[nextIdx]);
+                            tabManager.setActiveTab(
+                                tabManager.tabs[nextIdx]
+                            );
                             // console.log(`Next tab: ${nextIdx}`);
                         }
                     }
@@ -99,10 +108,19 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
 
                 case 'prev-tab':
                     if (tabManager.tabs && tabManager.tabs.length > 0) {
-                        const currentIdx = tabManager.tabs.indexOf(tabManager.activeTab);
-                        const prevIdx = currentIdx - 1 < 0 ? tabManager.tabs.length - 1 : currentIdx - 1;
+                        const currentIdx = tabManager.tabs.indexOf(
+                            tabManager.activeTab
+                        );
+                        let prevIdx;
+                        if (currentIdx - 1 < 0) {
+                            prevIdx = tabManager.tabs.length - 1;
+                        } else {
+                            prevIdx = currentIdx - 1;
+                        }
                         if (tabManager.tabs[prevIdx] && typeof tabManager.setActiveTab === 'function') {
-                            tabManager.setActiveTab(tabManager.tabs[prevIdx]);
+                            tabManager.setActiveTab(
+                                tabManager.tabs[prevIdx]
+                            );
                             // console.log(`Prev tab: ${prevIdx}`);
                         }
                     }
@@ -110,7 +128,11 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
 
                 case 'switch-to-index':
                     if (tabManager.tabs && tabManager.tabs[action.index] && typeof tabManager.setActiveTab === 'function') {
-                        tabManager.setActiveTab(tabManager.tabs[action.index]);
+                        tabManager.setActiveTab(
+                            tabManager.tabs[
+                                action.index
+                            ]
+                        );
                         // console.log(`Switch to tab: ${action.index}`);
                     } else {
                         console.warn(`Tab index ${action.index} not found`);
@@ -120,7 +142,9 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
                 case 'switch-to-last':
                     if (tabManager.tabs && tabManager.tabs.length > 0 && typeof tabManager.setActiveTab === 'function') {
                         const lastIdx = tabManager.tabs.length - 1;
-                        tabManager.setActiveTab(tabManager.tabs[lastIdx]);
+                        tabManager.setActiveTab(
+                            tabManager.tabs[lastIdx]
+                        );
                         // console.log(`Switch to last tab: ${lastIdx}`);
                     }
                     break;

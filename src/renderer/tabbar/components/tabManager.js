@@ -132,7 +132,10 @@ export class TabManager {
             }
 
             // Switch to adjacent tab
-            const nextIndex = Math.min(index, this.tabOrder.length - 1);
+            const nextIndex = Math.min(
+                index,
+                this.tabOrder.length - 1
+            );
             if (nextIndex >= 0) {
                 this.switchTab(this.tabOrder[nextIndex]);
             }
@@ -177,7 +180,10 @@ export class TabManager {
             // Notify IPC
             this.ipcBridge.notifyReorderTabs(fromIndex, toIndex);
         } catch (error) {
-            console.error('Error reordering tabs:', error);
+            console.error(
+                'Error reordering tabs:',
+                error
+            );
         }
     }
 
@@ -194,11 +200,17 @@ export class TabManager {
 
             if (Array.isArray(tabs)) {
                 tabs.forEach((tabData, index) => {
-                    if (!tabData || !tabData.title) return;
+                    if (!tabData || !tabData.title) {
+                        return;
+                    }
 
-                    const canCreate = this.validator.canCreateTab(this.tabOrder.length);
+                    const canCreate = this.validator.canCreateTab(
+                        this.tabOrder.length
+                    );
                     if (!canCreate.valid) {
-                        console.warn(`Tab limit reached. Skipping tab: ${tabData.title}`);
+                        console.warn(
+                            `Tab limit reached. Skipping tab: ${tabData.title}`
+                        );
                         return;
                     }
 
@@ -208,20 +220,30 @@ export class TabManager {
                     tab.onClose = (id) => this.closeTab(id);
                     tab.onClick = (id) => this.switchTab(id);
 
-                    this.tabbar.insertBefore(tab.getElement(), this.addBtn);
+                    this.tabbar.insertBefore(
+                        tab.getElement(),
+                        this.addBtn
+                    );
                     this.tabs.set(id, tab);
                     this.tabOrder.push(id);
                 });
 
                 // Set active tab
                 if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
-                    this.switchTab(this.tabOrder[activeIndex]);
+                    this.switchTab(
+                        this.tabOrder[activeIndex]
+                    );
                 } else if (this.tabOrder.length > 0) {
-                    this.switchTab(this.tabOrder[0]);
+                    this.switchTab(
+                        this.tabOrder[0]
+                    );
                 }
             }
         } catch (error) {
-            console.error('Error syncing with main process:', error);
+            console.error(
+                'Error syncing with main process:',
+                error
+            );
         }
     }
     cleanupAllTabs() {
@@ -237,13 +259,18 @@ export class TabManager {
             this.tabOrder = [];
             this.activeTabId = null;
         } catch (error) {
-            console.error('Error cleaning up tabs:', error);
+            console.error(
+                'Error cleaning up tabs:',
+                error
+            );
         }
     }
 
     // Utility methods
     updateTabTitle(id, newTitle) {
-        if (this.isDestroyed || !this.tabs.has(id)) return;
+        if (this.isDestroyed || !this.tabs.has(id)) {
+            return;
+        }
 
         const validation = this.validator.validateTitle(newTitle);
         const tab = this.tabs.get(id);
@@ -268,7 +295,9 @@ export class TabManager {
 
     getTabInfo(id) {
         const tab = this.tabs.get(id);
-        if (!tab) return null;
+        if (!tab) {
+            return null;
+        };
 
         return {
             ...tab.getInfo(),
@@ -282,7 +311,9 @@ export class TabManager {
         try {
             // Remove add button listener
             if (this.addBtn) {
-                this.addBtn.replaceWith(this.addBtn.cloneNode(true));
+                this.addBtn.replaceWith(
+                    this.addBtn.cloneNode(true)
+                );
             }
 
             // Clean up all tabs

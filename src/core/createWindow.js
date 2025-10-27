@@ -42,7 +42,9 @@ export const createWindow = async () => {
     ipcManager.setTabManager(tabManager);
 
     if (!import.meta.env?.PROD) {
-        mainWindow.webContents.openDevTools({ mode: 'detach' });
+        mainWindow.webContents.openDevTools(
+            { mode: 'detach' }
+        );
     }
 
     await mainWindow.loadFile(resolvePath(

@@ -13,14 +13,20 @@ export class KeyboardManager {
         }
 
         this.boundHandler = (e) => this.handleKeydown(e);
-        document.addEventListener('keydown', this.boundHandler);
+        document.addEventListener(
+            'keydown',
+            this.boundHandler
+        );
         this.isInitialized = true;
         console.log('KeyboardManager initialized');
     }
 
     destroy() {
         if (this.boundHandler) {
-            document.removeEventListener('keydown', this.boundHandler);
+            document.removeEventListener(
+                'keydown',
+                this.boundHandler
+            );
             this.boundHandler = null;
             this.isInitialized = false;
         }
@@ -36,7 +42,9 @@ export class KeyboardManager {
     }
 
     handleKeydown(e) {
-        if (e.repeat) return;
+        if (e.repeat) {
+            return;
+        }
 
         if (!window.electronAPI || !window.electronAPI.sendShortcut) {
             console.warn('electronAPI not available');
@@ -44,15 +52,24 @@ export class KeyboardManager {
         }
 
         const isMac = document.body.classList.contains('darwin');
-        const modifier = isMac ? e.metaKey : e.ctrlKey;
+        let modifier;
+        if (isMac) {
+            modifier = e.metaKey;
+        } else {
+            modifier = e.ctrlKey;
+        }
 
         // Ctrl/Cmd + T - New Tab
         if (modifier && e.code === 'KeyT') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return;
+            }
             console.log('Frontend: Sending new-tab');
-            window.electronAPI.sendShortcut({ type: 'new-tab' });
+            window.electronAPI.sendShortcut(
+                { type: 'new-tab' }
+            );
             return;
         }
 
@@ -60,9 +77,13 @@ export class KeyboardManager {
         if (modifier && e.code === 'KeyW') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return;
+            }
             console.log('Frontend: Sending close-tab');
-            window.electronAPI.sendShortcut({ type: 'close-tab' });
+            window.electronAPI.sendShortcut(
+                { type: 'close-tab' }
+            );
             return;
         }
 
@@ -70,9 +91,13 @@ export class KeyboardManager {
         if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return;
+            }
             console.log('Frontend: Sending next-tab');
-            window.electronAPI.sendShortcut({ type: 'next-tab' });
+            window.electronAPI.sendShortcut(
+                { type: 'next-tab' }
+            );
             return;
         }
 
@@ -80,9 +105,13 @@ export class KeyboardManager {
         if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return
+            };
             console.log('Frontend: Sending prev-tab');
-            window.electronAPI.sendShortcut({ type: 'prev-tab' });
+            window.electronAPI.sendShortcut(
+                { type: 'prev-tab' }
+            );
             return;
         }
 
@@ -90,7 +119,9 @@ export class KeyboardManager {
         if (modifier && e.key >= '1' && e.key <= '8') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return;
+            }
             const index = parseInt(e.key) - 1;
             console.log('Frontend: Sending switch-to-index', index);
             window.electronAPI.sendShortcut({
@@ -104,9 +135,13 @@ export class KeyboardManager {
         if (modifier && e.key === '9') {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!this.canExecute()) return;
+            if (!this.canExecute()) {
+                return;
+            }
             console.log('Frontend: Sending switch-to-last');
-            window.electronAPI.sendShortcut({ type: 'switch-to-last' });
+            window.electronAPI.sendShortcut(
+                { type: 'switch-to-last' }
+            );
             return;
         }
     }

@@ -8,7 +8,7 @@ export class TabManager {
         this.mainWindow = mainWindow;
         this.tabs = [];
         this.activeTab = null;
-        this.isDestroyed = false; // Add destruction flag
+        this.isDestroyed = false;
 
         // Listen resize event
         this.mainWindow.on('resize', () => {
@@ -19,15 +19,21 @@ export class TabManager {
 
         // if window (fullscreen/maximized/minimized) than...
         this.mainWindow.on('enter-full-screen', () => {
-            if (!this.isDestroyed) this.layoutActiveTab();
+            if (!this.isDestroyed) {
+                this.layoutActiveTab();
+            }
         });
         this.mainWindow.on('leave-full-screen', () => {
-            if (!this.isDestroyed) this.layoutActiveTab();
+            if (!this.isDestroyed) {
+                this.layoutActiveTab();
+            }
         });
     }
 
     createTab(title = `Tab ${this.tabs.length + 1}`) {
-        if (this.isDestroyed) return null;
+        if (this.isDestroyed) {
+            return null;
+        }
 
         const view = new BrowserView({
             webPreferences: {
@@ -37,7 +43,11 @@ export class TabManager {
             }
         });
 
-        const tab = { title, view, loaded: false };
+        const tab = {
+            title,
+            view,
+            loaded: false
+        };
         this.tabs.push(tab);
 
         this.setActiveTab(tab);
@@ -45,13 +55,20 @@ export class TabManager {
     }
 
     setActiveTab(tab) {
-        if (this.isDestroyed || !tab) return;
+        if (this.isDestroyed || !tab) {
+            return;
+        }
 
         if (this.activeTab?.view) {
             try {
-                this.mainWindow.removeBrowserView(this.activeTab.view);
+                this.mainWindow.removeBrowserView(
+                    this.activeTab.view
+                );
             } catch (error) {
-                console.warn('Warning: Could not remove browser view:', error.message);
+                console.warn(
+                    'Warning: Could not remove browser view:',
+                    error.message
+                );
             }
         }
 
@@ -60,11 +77,16 @@ export class TabManager {
         if (!tab.loaded) {
             try {
                 tab.view.webContents.loadFile(
-                    path.join(resolvePath('../index.html'))
+                    path.join(
+                        resolvePath('../index.html')
+                    )
                 );
                 tab.loaded = true;
             } catch (error) {
-                console.error('Error loading tab content:', error.message);
+                console.error(
+                    'Error loading tab content:',
+                    error.message
+                );
                 return;
             }
         }
@@ -73,7 +95,10 @@ export class TabManager {
             this.mainWindow.addBrowserView(tab.view);
             this.layoutActiveTab();
         } catch (error) {
-            console.error('Error adding browser view:', error.message);
+            console.error(
+                'Error adding browser view:',
+                error.message
+            );
         }
     }
 
@@ -81,7 +106,7 @@ export class TabManager {
         if (!this.activeTab || this.isDestroyed) return;
 
         try {
-            const [width, height] = this.mainWindow.getContentSize();
+            const [ width, height ] = this.mainWindow.getContentSize();
             this.activeTab.view.setBounds({
                 x: 0,
                 y: 38,
@@ -89,7 +114,10 @@ export class TabManager {
                 height: height - 38,
             });
         } catch (error) {
-            console.warn('Warning: Could not layout active tab:', error.message);
+            console.warn(
+                'Warning: Could not layout active tab:',
+                error.message
+            );
         }
     }
 
@@ -104,7 +132,11 @@ export class TabManager {
 
         // Move the tab from fromIndex to toIndex
         const [movedTab] = this.tabs.splice(fromIndex, 1);
-        this.tabs.splice(toIndex, 0, movedTab);
+        this.tabs.splice(
+            toIndex,
+            0,
+            movedTab
+        );
     }
 
     closeTab(tab) {
@@ -123,7 +155,10 @@ export class TabManager {
         try {
             this.mainWindow.removeBrowserView(tab.view);
         } catch (error) {
-            console.warn('Warning: Could not remove browser view:', error.message);
+            console.warn(
+                'Warning: Could not remove browser view:',
+                error.message
+            );
         }
 
         // Then destroy webContents
@@ -132,7 +167,10 @@ export class TabManager {
                 tab.view.webContents.destroy();
             }
         } catch (error) {
-            console.warn('Warning: Could not destroy web contents:', error.message);
+            console.warn(
+                'Warning: Could not destroy web contents:',
+                error.message
+            );
         }
 
         // Remove from tabs array
@@ -152,7 +190,9 @@ export class TabManager {
     }
 
     closeAllTabs() {
-        if (this.isDestroyed) return;
+        if (this.isDestroyed) {
+            return;
+        }
         const tabsToClose = [...this.tabs];
 
         tabsToClose.forEach(tab => {
@@ -168,7 +208,10 @@ export class TabManager {
             try {
                 this.mainWindow.removeBrowserView(tab.view);
             } catch (error) {
-                console.warn('Warning: Could not remove browser view:', error.message);
+                console.warn(
+                    'Warning: Could not remove browser view:',
+                    error.message
+                );
             }
 
             try {
@@ -176,7 +219,10 @@ export class TabManager {
                     tab.view.webContents.destroy();
                 }
             } catch (error) {
-                console.warn('Warning: Could not destroy web contents:', error.message);
+                console.warn(
+                    'Warning: Could not destroy web contents:',
+                    error.message
+                );
             }
         });
 
