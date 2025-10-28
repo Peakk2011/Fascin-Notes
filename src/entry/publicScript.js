@@ -4,6 +4,7 @@
 let lastShortcutTime = 0;
 const shortcutThrottle = 250;
 let keyboardInitialized = false;
+let tabsInitialized = false;
 
 const initOS = async () => {
     if (typeof window.electronAPI === 'undefined') {
@@ -21,6 +22,69 @@ const initOS = async () => {
             console.error('Error getting OS:', error);
         }
     }
+}
+
+// Initialize tabs sync system
+const initTabsSync = () => {
+    if (typeof window.electronAPI === 'undefined') {
+        setTimeout(initTabsSync, 50);
+        return;
+    }
+
+    if (tabsInitialized) {
+        console.warn('Tabs sync already initialized');
+        return;
+    }
+
+    // Listen for tabs sync from main process
+    window.electronAPI.onTabsSync((tabsData) => {
+        console.log('Tabs synced from main process:', tabsData);
+        updateTabsUI(tabsData.tabs, tabsData.activeTabIndex);
+    });
+
+    // Request initial tabs sync
+    window.electronAPI.requestTabsSync();
+    console.log('Tabs sync system initialized');
+
+    tabsInitialized = true;
+}
+
+// Update tabs UI based on synced data
+const updateTabsUI = (tabs, activeIndex) => {
+    const tabsContainer = document.getElementById('tabs-container');
+    if (!tabsContainer) {
+        console.warn('Tabs container not found');
+        return;
+    }
+
+    // Clear existing tabs
+    tabsContainer.innerHTML = '';
+
+    // Create tab elements
+    tabs.forEach((tab, index) => {
+        const tabElement = document.createElement('div');
+        tabElement.className = `tab ${index === activeIndex ? 'active' : ''}`;
+        tabElement.textContent = tab.title || 'Untitled';
+
+        // Add click event to switch tab
+        tabElement.addEventListener('click', () => {
+            window.electronAPI.switchTab(index);
+        });
+
+        // Add close button
+        const closeButton = document.createElement('span');
+        closeButton.className = 'tab-close';
+        closeButton.innerHTML = '×';
+        closeButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            window.electronAPI.closeTab(index);
+        });
+
+        tabElement.appendChild(closeButton);
+        tabsContainer.appendChild(tabElement);
+    });
+
+    console.log(`Updated UI with ${tabs.length} tabs, active: ${activeIndex}`);
 }
 
 // Initialize keyboard shortcuts (USE FOR index.html)
@@ -129,19 +193,135 @@ const initKeyboardShortcuts = () => {
             window.electronAPI.sendShortcut({ type: 'switch-to-last' });
             return;
         }
+
+        // Ctrl/Cmd + S - Save tabs to storage (new shortcut)
+        if (modifier && e.code === 'KeyS') {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            if (!canExecuteShortcut()) {
+                return;
+            }
+            console.log('Frontend: Ctrl+S pressed - saving tabs');
+            saveCurrentTabsState();
+            return;
+        }
     }, true);
 
     keyboardInitialized = true;
     // console.log('Keyboard shortcuts initialized');
 }
 
+// Save current tabs state to storage
+const saveCurrentTabsState = async () => {
+    if (typeof window.electronAPI?.saveTabs !== 'function') {
+        console.warn('saveTabs API not available');
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.saveTabs();
+        if (result.success) {
+            console.log('Tabs saved successfully via Ctrl+S');
+        } else {
+            console.error('Failed to save tabs:', result.error);
+        }
+    } catch (error) {
+        console.error('Error saving tabs:', error);
+    }
+}
+
+// Load tabs from storage (manual trigger)
+const loadTabsFromStorage = async () => {
+    if (typeof window.electronAPI?.loadTabs !== 'function') {
+        console.warn('loadTabs API not available');
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.loadTabs();
+        if (result.success) {
+            console.log('Loaded tabs from storage:', result.tabs);
+            return result.tabs;
+        } else {
+            console.error('Failed to load tabs:', result.error);
+            return [];
+        }
+    } catch (error) {
+        console.error('Error loading tabs:', error);
+        return [];
+    }
+}
+
+// Get storage path info
+const getStorageInfo = async () => {
+    if (typeof window.electronAPI?.getStoragePath !== 'function') {
+        console.warn('getStoragePath API not available');
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.getStoragePath();
+        if (result.success) {
+            console.log('Tabs storage path:', result.path);
+            return result.path;
+        } else {
+            console.error('Failed to get storage path:', result.error);
+            return null;
+        }
+    } catch (error) {
+        console.error('Error getting storage path:', error);
+        return null;
+    }
+}
+
+// Clear all saved tabs
+const clearSavedTabs = async () => {
+    if (typeof window.electronAPI?.clearTabs !== 'function') {
+        console.warn('clearTabs API not available');
+        return;
+    }
+
+    try {
+        const result = await window.electronAPI.clearTabs();
+        if (result.success) {
+            console.log('All saved tabs cleared');
+        } else {
+            console.error('Failed to clear tabs:', result.error);
+        }
+    } catch (error) {
+        console.error('Error clearing tabs:', error);
+    }
+}
+
+// Manual sync trigger
+const manualSyncTabs = () => {
+    if (typeof window.electronAPI?.requestTabsSync === 'function') {
+        window.electronAPI.requestTabsSync();
+        console.log('Manual tabs sync requested');
+    }
+}
+
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     keyboardInitialized = false;
+    tabsInitialized = false;
     lastShortcutTime = 0;
-    // console.log('Keyboard shortcuts cleaned up');
+    // console.log('Tabs sync and keyboard shortcuts cleaned up');
 });
 
-// Start initialization
+// Start all initialization
 initOS();
 initKeyboardShortcuts();
+initTabsSync();
+
+// Export functions for global access (optional)
+window.tabsManager = {
+    saveCurrentTabsState,
+    loadTabsFromStorage,
+    getStorageInfo,
+    clearSavedTabs,
+    manualSyncTabs,
+    updateTabsUI
+};
+
+console.log('Renderer tabs system initialized');

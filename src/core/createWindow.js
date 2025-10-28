@@ -48,17 +48,27 @@ export const createWindow = async () => {
     ));
 
     // Load saved tabs
-    const savedTabs = await tabStorage.loadTabs();
+    const savedTabs = await ipcManager.tabStorage.loadTabs();
+
     if (savedTabs && savedTabs.length > 0) {
         console.log(`Restoring ${savedTabs.length} tabs.`);
         savedTabs.forEach(tabInfo => {
-            const newTab = tabManager.createTab(tabInfo.title, false); // Create tab but don't activate yet
+            const newTab = tabManager.createTab(tabInfo.title, false);
             if (tabInfo.url) {
                 newTab.view.webContents.loadURL(tabInfo.url);
             }
         });
+
         const activeIndex = savedTabs.findIndex(t => t.isActive);
-        tabManager.setActiveTab(tabManager.tabs[activeIndex] || tabManager.tabs[0]);
+        if (activeIndex >= 0 && tabManager.tabs[activeIndex]) {
+            tabManager.setActiveTab(tabManager.tabs[activeIndex]);
+        } else {
+            tabManager.setActiveTab(tabManager.tabs[0]);
+        }
+
+        setTimeout(() => {
+            ipcManager.syncTabsToRenderer(mainWindow.webContents);
+        }, 100);
     } else {
         tabManager.createTab('Welcome');
     }
@@ -76,6 +86,7 @@ export const createWindow = async () => {
     mainWindow.on('close', async () => {
         const tabs = tabManager.getAllTabs();
         await tabStorage.saveTabs(tabs, tabManager.getActiveTab());
+        await ipcManager.autoSaveTabs();
     });
     mainWindow.once('closed', () => {
         unregisterTabShortcuts();

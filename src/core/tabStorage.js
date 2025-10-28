@@ -14,7 +14,7 @@ export class TabStorage {
         );
     }
 
-    async ensureStroageDir() {
+    async ensureStorageDir() {
         try {
             await fs.mkdir(
                 this.storageDir,
@@ -24,20 +24,20 @@ export class TabStorage {
             )
         } catch (error) {
             console.error(
-                'Error creating stroage directory',
+                'Error creating storage directory',
                 error
             );
         }
     }
 
-    async saveTabs(tabs) {
+    async saveTabs(tabs, activeTab = null) {
         try {
-            await this.ensureStroageDir();
+            await this.ensureStorageDir();
 
             const tabsData = tabs.map(tab => ({
                 title: tab.title,
                 url: tab.url || '',
-                isActive: tab.isActive || false,
+                isActive: tab === activeTab,
                 // You can add more fields here
             }));
 
@@ -77,6 +77,10 @@ export class TabStorage {
                 this.storageFile,
                 'utf-8'
             );
+            const data = JSON.parse(fileContent);
+
+            console.log(`Loaded ${data.tabs.length} tabs from storage`);
+            return data.tabs || [];
         } catch (error) {
             if (error.code === 'ENOENT') {
                 console.log('No saved tabs found');
@@ -113,8 +117,9 @@ export class TabStorage {
 }
 
 /*
-    UPDATE Mon/27/10/2025
+    UPDATE 28/10/2025
     This file is part of Fascin-Notes
     Use for storage the tabs
-    But it not connect the renderer side
+    But when it close it not sync I will fix it tomorrow
+    ปัญหามันคือการที่มัน sync เข้ามาแล้วแต่ไม่ทันที ต้อง new tabs ก่อนถึงจะเห็น
 */
