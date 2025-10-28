@@ -3,7 +3,7 @@ import { ipcMain } from 'electron';
 let isRegistered = false;
 let lastActionTime = 0;
 let actionInProgress = false;
-const throttleDelay = 300;
+const throttleDelay = 250;
 
 export const registerTabShortcuts = (mainWindow, tabManager) => {
     if (isRegistered) {

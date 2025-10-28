@@ -1,7 +1,7 @@
 export class KeyboardManager {
     constructor() {
         this.lastActionTime = 0;
-        this.throttleDelay = 500;
+        this.throttleDelay = 250;
         this.isInitialized = false;
         this.boundHandler = null;
     }

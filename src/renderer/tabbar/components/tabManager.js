@@ -19,6 +19,10 @@ export class TabManager {
         this.ipcBridge = new TabIPCBridge();
         this.validator = new TabValidator();
 
+        // Handler to cleanup
+        this.handleAddClick = null;
+        this.unsubscribeIPC = null;
+
         this.init();
     }
 
@@ -29,7 +33,9 @@ export class TabManager {
 
     setupIPC() {
         this.ipcBridge.init();
-        this.ipcBridge.onTabsUpdated((data) => {
+
+        // Store unsubscribe function (if ipcBridge supported)
+        this.unsubscribeIPC = this.ipcBridge.onTabsUpdated((data) => {
             if (!this.isDestroyed) {
                 this.syncWithMainProcess(data);
             }
@@ -39,11 +45,20 @@ export class TabManager {
     setupEventListeners() {
         if (!this.addBtn) return;
 
-        this.addBtn.addEventListener('click', () => {
+        // Handler function
+        this.handleAddClick = () => {
             if (!this.isDestroyed) {
                 this.createTab();
             }
-        }, { passive: true });
+        };
+
+        this.addBtn.addEventListener(
+            'click',
+            this.handleAddClick,
+            {
+                passive: true
+            }
+        );
     }
 
     createTab(title = 'New Tab', setActive = true) {
@@ -52,7 +67,10 @@ export class TabManager {
         }
 
         // Validate
-        const canCreate = this.validator.canCreateTab(this.tabOrder.length);
+        const canCreate = this.validator.canCreateTab(
+            this.tabOrder.length
+        );
+
         if (!canCreate.valid) {
             alert(canCreate.reason);
             return null;
@@ -63,15 +81,26 @@ export class TabManager {
 
         // Create tab
         const id = this.idManager.getNewId();
-        const tab = new Tab(id, sanitizedTitle);
+        const tab = new Tab(
+            id,
+            sanitizedTitle
+        );
 
         // Setup callbacks
         tab.onClose = (id) => this.closeTab(id);
         tab.onClick = (id) => this.switchTab(id);
 
         // Add to DOM and state
-        this.tabbar.insertBefore(tab.getElement(), this.addBtn);
-        this.tabs.set(id, tab);
+        this.tabbar.insertBefore(
+            tab.getElement(),
+            this.addBtn
+        );
+
+        this.tabs.set(
+            id,
+            tab
+        );
+
         this.tabOrder.push(id);
 
         if (setActive) {
@@ -90,21 +119,23 @@ export class TabManager {
         }
 
         try {
-            // Deactivate all
-            this.tabs.forEach(tab => tab.setActive(false));
+            this.tabs.forEach(
+                tab => tab.setActive(false)
+            );
 
-            // Activate selected
             const tab = this.tabs.get(id);
             tab.setActive(true);
             this.activeTabId = id;
 
-            // Notify IPC
             const index = this.tabOrder.indexOf(id);
             if (index !== -1) {
                 this.ipcBridge.notifySwitchTab(index);
             }
         } catch (error) {
-            console.error('Error switching tab:', error);
+            console.error(
+                'Error switching tab:',
+                error
+            );
         }
     }
 
@@ -117,33 +148,58 @@ export class TabManager {
             const index = this.tabOrder.indexOf(id);
             const tab = this.tabs.get(id);
 
-            // Close with animation
             await tab.close();
 
-            // Update state
+            this.destroyTab(tab);
+
             this.tabs.delete(id);
             this.tabOrder.splice(index, 1);
             this.idManager.releaseId(id);
 
-            // Check if all tabs closed
             if (this.tabOrder.length === 0) {
                 this.ipcBridge.notifyCloseApp();
                 return;
             }
 
-            // Switch to adjacent tab
             const nextIndex = Math.min(
                 index,
                 this.tabOrder.length - 1
             );
+
             if (nextIndex >= 0) {
                 this.switchTab(this.tabOrder[nextIndex]);
             }
 
-            // Notify IPC
             this.ipcBridge.notifyCloseTab(index);
         } catch (error) {
-            console.error('Error closing tab:', error);
+            console.error(
+                'Error closing tab:',
+                error
+            );
+        }
+    }
+
+    destroyTab(tab) {
+        if (!tab) return;
+
+        try {
+            // Clear callbacks
+            tab.onClose = null;
+            tab.onClick = null;
+
+            if (typeof tab.destroy === 'function') {
+                tab.destroy();
+            }
+
+            const element = tab.getElement();
+            if (element && element.parentNode) {
+                element.remove();
+            }
+        } catch (error) {
+            console.error(
+                'Error destroying tab:',
+                error
+            );
         }
     }
 
@@ -164,17 +220,21 @@ export class TabManager {
             this.tabOrder.splice(fromIndex, 1);
             this.tabOrder.splice(toIndex, 0, id);
 
-            // Reorder in DOM
             const tab = this.tabs.get(id);
-            const nextElement = toIndex < this.tabOrder.length - 1 ?
-                this.tabs.get(this.tabOrder[toIndex + 1]).getElement() :
-                this.addBtn;
+            let nextElement;
+            
+            if (toIndex < this.tabOrder.length - 1) {
+                const nextTabId = this.tabOrder[toIndex + 1];
+                const nextTab = this.tabs.get(nextTabId);
+                nextElement = nextTab ? nextTab.getElement() : null;
+            } else {
+                nextElement = this.addBtn;
+            }
 
             if (this.tabbar && nextElement) {
                 this.tabbar.insertBefore(tab.getElement(), nextElement);
             }
 
-            // Animation
             tab.addMergeAnimation();
 
             // Notify IPC
@@ -190,16 +250,15 @@ export class TabManager {
     syncWithMainProcess(data) {
         if (this.isDestroyed || !data) {
             return;
-        };
+        }
 
         try {
             const { tabs, activeIndex } = data;
 
-            // Clean up
             this.cleanupAllTabs();
 
             if (Array.isArray(tabs)) {
-                tabs.forEach((tabData, index) => {
+                tabs.forEach((tabData) => {
                     if (!tabData || !tabData.title) {
                         return;
                     }
@@ -215,7 +274,11 @@ export class TabManager {
                     }
 
                     const id = this.idManager.getNewId();
-                    const tab = new Tab(id, tabData.title);
+
+                    const tab = new Tab(
+                        id,
+                        tabData.title
+                    );
 
                     tab.onClose = (id) => this.closeTab(id);
                     tab.onClick = (id) => this.switchTab(id);
@@ -224,19 +287,23 @@ export class TabManager {
                         tab.getElement(),
                         this.addBtn
                     );
-                    this.tabs.set(id, tab);
+
+                    this.tabs.set(
+                        id,
+                        tab
+                    );
+
                     this.tabOrder.push(id);
                 });
 
-                // Set active tab
                 if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
                     this.switchTab(
-                        this.tabOrder[activeIndex]
+                        this.tabOrder[
+                            activeIndex
+                        ]
                     );
                 } else if (this.tabOrder.length > 0) {
-                    this.switchTab(
-                        this.tabOrder[0]
-                    );
+                    this.switchTab(this.tabOrder[0]);
                 }
             }
         } catch (error) {
@@ -246,13 +313,11 @@ export class TabManager {
             );
         }
     }
+
     cleanupAllTabs() {
         try {
             this.tabs.forEach((tab) => {
-                const element = tab.getElement();
-                if (element && element.parentNode === this.tabbar) {
-                    element.remove();
-                }
+                this.destroyTab(tab);
             });
 
             this.tabs.clear();
@@ -266,7 +331,6 @@ export class TabManager {
         }
     }
 
-    // Utility methods
     updateTabTitle(id, newTitle) {
         if (this.isDestroyed || !this.tabs.has(id)) {
             return;
@@ -297,7 +361,7 @@ export class TabManager {
         const tab = this.tabs.get(id);
         if (!tab) {
             return null;
-        };
+        }
 
         return {
             ...tab.getInfo(),
@@ -309,21 +373,46 @@ export class TabManager {
         this.isDestroyed = true;
 
         try {
-            // Remove add button listener
-            if (this.addBtn) {
-                this.addBtn.replaceWith(
-                    this.addBtn.cloneNode(true)
-                );
+            // Remove IPC listener
+            if (typeof this.unsubscribeIPC === 'function') {
+                this.unsubscribeIPC();
             }
 
-            // Clean up all tabs
+            // Remove add button listener
+            if (this.addBtn && this.handleAddClick) {
+                this.addBtn.removeEventListener('click', this.handleAddClick);
+            }
+
+            // Clean up tabs
             this.cleanupAllTabs();
 
             // Reset components
-            this.idManager.reset();
+            if (this.idManager && typeof this.idManager.reset === 'function') {
+                this.idManager.reset();
+            }
+
+            // Destroy IPC bridge
+            if (this.ipcBridge && typeof this.ipcBridge.destroy === 'function') {
+                this.ipcBridge.destroy();
+            }
+
+            // Clear all reference
+            this.tabs = null;
+            this.tabOrder = null;
+            this.activeTabId = null;
+            this.tabbar = null;
+            this.addBtn = null;
+            this.handleAddClick = null;
+            this.unsubscribeIPC = null;
+            this.idManager = null;
+            this.ipcBridge = null;
+            this.validator = null;
 
         } catch (error) {
-            console.error('Error during destruction:', error);
+            console.error(
+                'Error during destruction:',
+                error
+            );
         }
     }
 }

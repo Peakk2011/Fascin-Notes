@@ -10,24 +10,37 @@ export class TabManager {
         this.activeTab = null;
         this.isDestroyed = false;
 
-        // Listen resize event
-        this.mainWindow.on('resize', () => {
+        // Sore reference of listeners to cleanup
+        this.resizeHandler = () => {
             if (!this.isDestroyed) {
                 this.layoutActiveTab();
             }
-        });
+        };
 
-        // if window (fullscreen/maximized/minimized) than...
-        this.mainWindow.on('enter-full-screen', () => {
+        this.enterFullScreenHandler = () => {
             if (!this.isDestroyed) {
                 this.layoutActiveTab();
             }
-        });
-        this.mainWindow.on('leave-full-screen', () => {
+        };
+
+        this.leaveFullScreenHandler = () => {
             if (!this.isDestroyed) {
                 this.layoutActiveTab();
             }
-        });
+        };
+
+        this.mainWindow.on(
+            'resize',
+            this.resizeHandler
+        );
+        this.mainWindow.on(
+            'enter-full-screen',
+            this.enterFullScreenHandler
+        );
+        this.mainWindow.on(
+            'leave-full-screen',
+            this.leaveFullScreenHandler
+        );
     }
 
     createTab(title = `Tab ${this.tabs.length + 1}`) {
@@ -106,7 +119,7 @@ export class TabManager {
         if (!this.activeTab || this.isDestroyed) return;
 
         try {
-            const [ width, height ] = this.mainWindow.getContentSize();
+            const [width, height] = this.mainWindow.getContentSize();
             this.activeTab.view.setBounds({
                 x: 0,
                 y: 38,
@@ -140,10 +153,14 @@ export class TabManager {
     }
 
     closeTab(tab) {
-        if (this.isDestroyed || !tab) return;
+        if (this.isDestroyed || !tab) {
+            return;
+        }
 
         const idx = this.tabs.indexOf(tab);
-        if (idx === -1) return;
+        if (idx === -1) {
+            return;
+        }
 
         if (this.activeTab === tab) {
             const nextTab = this.tabs[idx + 1] || this.tabs[idx - 1] || null;
@@ -173,7 +190,21 @@ export class TabManager {
             );
         }
 
-        // Remove from tabs array
+        // Destroy BrowserView object
+        try {
+            // @ts-ignore - destroy method exists but not in types
+            if (typeof tab.view.destroy === 'function') {
+                tab.view.destroy();
+            }
+        } catch (error) {
+            console.warn(
+                'Warning: Could not destroy browser view:',
+                error.message
+            );
+        }
+
+        // Clear referrence & Remove from tabs array
+        tab.view = null;
         this.tabs.splice(idx, 1);
     }
 
@@ -224,10 +255,30 @@ export class TabManager {
                     error.message
                 );
             }
+
+            // Destroy BrowserView
+            try {
+                if (typeof tab.view.destroy === 'function') {
+                    tab.view.destroy();
+                }
+            } catch (error) {
+                console.warn(
+                    'Warning: Cound not destroy browserView:',
+                    error.message
+                );
+            }
+
+            tab.view = null;
         });
 
         this.tabs = [];
         this.activeTab = null;
+
+        // Clear all references
+        this.mainWindow = null;
+        this.resizeHandler = null;
+        this.enterFullScreenHandler = null;
+        this.leaveFullScreenHandler = null;
     }
 
     isManagerDestroyed() {

@@ -2,7 +2,7 @@
 // All .html files will using this script here 
 
 let lastShortcutTime = 0;
-const shortcutThrottle = 500;
+const shortcutThrottle = 250;
 let keyboardInitialized = false;
 
 const initOS = async () => {

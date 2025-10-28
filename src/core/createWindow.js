@@ -2,7 +2,7 @@ import { BrowserWindow } from "electron";
 import { TabManager } from './tabManager.js';
 import { IpcManager } from './ipcManager.js';
 import { TabStorage } from './tabStorage.js';
-import { 
+import {
     registerTabShortcuts,
     unregisterTabShortcuts
 } from './registerTabShortcuts.js';
@@ -21,22 +21,16 @@ export const createWindow = async () => {
     const mainWindow = new BrowserWindow(windowOptions);
 
     // Protect Ctrl+W/Cmd+W to closing the window
-    // mainWindow.on('close', (e) => {
-    //     const tabCount = tabManager?.tabs?.length || 0;
-    //     if (tabCount > 1) {
-    //         e.preventDefault();
-    //         // console.log('Prevented window close multiple tabs are open');
-    //     }
-    // });
+    mainWindow.webContents.on('before-input-event', (event, input) => {
+        const tabCount = tabManager?.tabs?.length || 0;
 
-    // Protect the default shortcuts (DISABLE)
-    // mainWindow.webContents.on('before-input-event', (event, input) => {
-    //     // Ctrl+W / Cmd+W
-    //     if ((input.control || input.meta) && input.key.toLowerCase() === 'w') {
-    //         event.preventDefault();
-    //         console.log('Blocked default Ctrl/Cmd+W');
-    //     }
-    // });
+        if ((input.control || input.meta) && input.key.toLowerCase() === 'w') {
+            if (tabCount > 1) {
+                event.preventDefault();
+                console.log('Blocked Ctrl/Cmd+W - multiple tabs open');
+            }
+        }
+    });
 
     mainWindow.setMenu(null);
 

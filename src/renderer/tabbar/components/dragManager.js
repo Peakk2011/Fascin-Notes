@@ -9,23 +9,47 @@ export class DragManager {
         this.lockedTop = 0;
         this.hasReordered = false;
         this.isDragging = false;
-        this.dragThreshold = 5; // Drag 5 pixels first to begin
+        this.dragThreshold = 5;
+
+        // Handlers
+        this.handleMouseDownBound = null;
+        this.handleMouseMoveBound = null;
+        this.handleMouseUpBound = null;
+        this.tabbar = null;
     }
 
     init(tabbar) {
-        tabbar.addEventListener('mousedown', (e) => this.handleMouseDown(e));
-        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
-        document.addEventListener('mouseup', (e) => this.handleMouseUp(e));
+        this.tabbar = tabbar;
+
+        // Bind methods
+        this.handleMouseDownBound = (e) => this.handleMouseDown(e);
+        this.handleMouseMoveBound = (e) => this.handleMouseMove(e);
+        this.handleMouseUpBound = (e) => this.handleMouseUp(e);
+
+        // Listeners
+        this.tabbar.addEventListener(
+            'mousedown',
+            this.handleMouseDownBound
+        );
+        document.addEventListener(
+            'mousemove',
+            this.handleMouseMoveBound
+        );
+        document.addEventListener(
+            'mouseup',
+            this.handleMouseUpBound
+        );
     }
 
     handleMouseDown(e) {
-        // If you press the close button or any other element that is not a tab do nothing
         if (e.target.closest('.close-btn') || e.target.closest('button')) {
             return;
         }
 
         const el = e.target.closest('.tab');
-        if (!el) return;
+        if (!el) {
+            return;
+        }
 
         this.draggedEl = el;
         this.draggedId = parseInt(el.dataset.id);
@@ -45,24 +69,21 @@ export class DragManager {
     }
 
     handleMouseMove(e) {
-        if (!this.draggedEl) return;
+        if (!this.draggedEl) {
+            return
+        };
 
-        // Check this dragThreshold limit
-        const distance = Math.abs(
-            e.clientX - this.startX
-        );
+        const distance = Math.abs(e.clientX - this.startX);
 
         if (!this.isDragging && distance < this.dragThreshold) {
-            return; // Not dragging
+            return;
         }
 
-        // Start to drag
         if (!this.isDragging) {
             this.isDragging = true;
             this.startDrag();
         }
 
-        // Position
         const parent = this.draggedEl.parentElement;
         const parentRect = parent.getBoundingClientRect();
         const newX = e.clientX - parentRect.left - this.offsetX;
@@ -83,12 +104,10 @@ export class DragManager {
         const parent = this.draggedEl.parentElement;
         const parentRect = parent.getBoundingClientRect();
 
-        // Save position while dragging
         this.originalLeft = rect.left - parentRect.left;
         this.originalTop = rect.top - parentRect.top;
-        this.lockedTop = this.originalTop; // Lock
+        this.lockedTop = this.originalTop;
 
-        // Elements
         this.draggedEl.style.position = 'absolute';
         this.draggedEl.style.zIndex = '9999';
         this.draggedEl.style.pointerEvents = 'none';
@@ -102,14 +121,12 @@ export class DragManager {
     handleMouseUp(e) {
         if (!this.draggedEl) return;
 
-        // If you haven't dragged it (just clicked it) and do nothing
         if (!this.isDragging) {
             this.draggedEl = null;
             this.draggedId = null;
             return;
         }
 
-        // If there is no reorder suck back to the original position
         if (!this.hasReordered) {
             const parent = this.draggedEl.parentElement;
             const parentRect = parent.getBoundingClientRect();
@@ -124,7 +141,6 @@ export class DragManager {
                 this.resetDraggedElement();
             }, 300);
         } else {
-            // If there is a reorder it will reset
             this.resetDraggedElement();
         }
 
@@ -134,13 +150,11 @@ export class DragManager {
     resetDraggedElement() {
         if (!this.draggedEl) return;
 
-        // Enable transition, it done dragging
         const allTabs = document.querySelectorAll('.tab');
         allTabs.forEach(tab => {
             tab.style.transition = '';
         });
 
-        // Reset styles
         this.draggedEl.style.cssText = '';
         this.draggedEl = null;
         this.draggedId = null;
@@ -173,7 +187,10 @@ export class DragManager {
                     } else {
                         newIndex = targetIndex;
                     }
-                    this.tabManager.reorderTabs(currentIndex, newIndex);
+                    this.tabManager.reorderTabs(
+                        currentIndex,
+                        newIndex
+                    );
                     this.hasReordered = true;
                 }
                 return;
@@ -182,8 +199,47 @@ export class DragManager {
 
         const lastIndex = tabOrder.length - 1;
         if (currentIndex !== lastIndex) {
-            this.tabManager.reorderTabs(currentIndex, lastIndex);
+            this.tabManager.reorderTabs(
+                currentIndex,
+                lastIndex
+            );
             this.hasReordered = true;
         }
+    }
+
+    destroy() {
+        if (this.tabbar && this.handleMouseDownBound) {
+            this.tabbar.removeEventListener(
+                'mousedown',
+                this.handleMouseDownBound
+            );
+        }
+
+        if (this.handleMouseMoveBound) {
+            document.removeEventListener(
+                'mousemove',
+                this.handleMouseMoveBound
+            );
+        }
+
+        if (this.handleMouseUpBound) {
+            document.removeEventListener(
+                'mouseup',
+                this.handleMouseUpBound
+            );
+        }
+
+        // Reset dragging state
+        if (this.draggedEl) {
+            this.resetDraggedElement();
+        }
+
+        // Clear references
+        this.handleMouseDownBound = null;
+        this.handleMouseMoveBound = null;
+        this.handleMouseUpBound = null;
+        this.tabbar = null;
+        this.tabManager = null;
+        this.draggedEl = null;
     }
 }
