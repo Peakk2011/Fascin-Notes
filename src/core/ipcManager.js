@@ -13,6 +13,8 @@ export class IpcManager {
         this.tabManager = this.tabManager;
         this.handlers = new Map();
         this.tabStorage = new TabStorage();
+        this.hasInitialSync = false;
+        this.syncTimeout = null;
     }
 
     init() {
@@ -47,7 +49,7 @@ export class IpcManager {
             const tab = this.tabManager.tabs[index];
             if (tab) {
                 this.tabManager.setActiveTab(tab);
-                this.syncTabsToAllWindows();
+                // this.syncTabsToAllWindows();
             } else {
                 console.error('Invalid tab index for switch:', index);
             }
@@ -56,7 +58,7 @@ export class IpcManager {
         this.registerHandler('close-tab', (event, index) => {
             if (this.tabManager?.closeTabByIndex) {
                 this.tabManager.closeTabByIndex(index);
-                this.syncTabsToAllWindows();
+                // this.syncTabsToAllWindows();
             } else {
                 console.error('TabManager not ready or missing closeTabByIndex method');
             }
@@ -64,7 +66,7 @@ export class IpcManager {
 
         this.registerHandler('reorder-tabs', (event, from, to) => {
             this.tabManager.reorderTabs(from, to);
-            this.syncTabsToAllWindows();
+            // this.syncTabsToAllWindows();
         });
 
         this.registerHandler('close-app', (event) => {
@@ -74,6 +76,24 @@ export class IpcManager {
         this.registerHandler('keyboard-shortcut', (event, action) => {
             this.handleKeyboardShortcut(action);
         });
+    }
+
+    performInitialSync() {
+        if (this.hasInitialSync) {
+            console.log('Initial sync already performed');
+            return
+        }
+
+        if (!this.tabManager) {
+            console.warn(
+                'TabManager not ready for initial sync'
+            );
+            return
+        }
+
+        console.log('Performing initial tabs sync');
+        this.syncTabsToAllWindows();
+        this.hasInitialSync = true;
     }
 
     // Storage handlers
@@ -185,7 +205,11 @@ export class IpcManager {
             case 'next-tab':
                 if (tabs.length > 1) {
                     const nextIndex = (activeIndex + 1) % tabs.length;
-                    this.tabManager.setActiveTab(tabs[nextIndex]);
+                    this.tabManager.setActiveTab(
+                        tabs[
+                        nextIndex
+                        ]
+                    );
                     this.syncTabsToAllWindows();
                 }
                 break;
@@ -193,21 +217,33 @@ export class IpcManager {
             case 'prev-tab':
                 if (tabs.length > 1) {
                     const prevIndex = (activeIndex - 1 + tabs.length) % tabs.length;
-                    this.tabManager.setActiveTab(tabs[prevIndex]);
+                    this.tabManager.setActiveTab(
+                        tabs[
+                        prevIndex
+                        ]
+                    );
                     this.syncTabsToAllWindows();
                 }
                 break;
 
             case 'switch-to-index':
                 if (action.index >= 0 && action.index < tabs.length) {
-                    this.tabManager.setActiveTab(tabs[action.index]);
+                    this.tabManager.setActiveTab(
+                        tabs[
+                        action.index
+                        ]
+                    );
                     this.syncTabsToAllWindows();
                 }
                 break;
 
             case 'switch-to-last':
                 if (tabs.length > 0) {
-                    this.tabManager.setActiveTab(tabs[tabs.length - 1]);
+                    this.tabManager.setActiveTab(
+                        tabs[
+                        tabs.length - 1
+                        ]
+                    );
                     this.syncTabsToAllWindows();
                 }
                 break;
@@ -231,12 +267,25 @@ export class IpcManager {
 
         const activeIndex = tabs.indexOf(activeTab);
 
+        const activeTabsCount = tabsData.filter(tab => tab.isActive).length;
+        if (activeTabsCount > 1) {
+            console.warn(
+                `Multiple active tabs detected: ${activeTabsCount}`
+            );
+            // Kill all inactive except the real active one
+            tabsData.forEach((tab, index) => {
+                tab.isActive = (index === activeIndex && activeIndex >= 0);
+            });
+        }
+
         webContents.send('tabs-sync', {
             tabs: tabsData,
             activeTabIndex: activeIndex >= 0 ? activeIndex : 0
         });
 
-        console.log(`Synced ${tabs.length} tabs to renderer`);
+        console.log(
+            `Synced ${tabs.length} tabs to renderer`
+        );
     }
 
     syncTabsToAllWindows() {
@@ -244,28 +293,47 @@ export class IpcManager {
             return;
         }
 
-        const windows = this.tabManager.getWindows?.() || [this.tabManager.windows];
-        windows.forEach(window => {
-            if (window && !window.isDestroyed()) {
-                this.syncTabsToRenderer(
-                    window.webContents
-                );
-            }
-        });
+        if (this.syncTimeout) {
+            clearTimeout(this.syncTimeout);
+        }
 
-        this.autoSaveTabs();
+        this.syncTimeout = setTimeout(() => {
+            const windows = this.tabManager.getWindows?.() || [this.tabManager.windows];
+            windows.forEach(window => {
+                if (window && !window.isDestroyed()) {
+                    this.syncTabsToRenderer(
+                        window.webContents
+                    );
+                }
+            });
+
+            this.autoSaveTabs();
+            this.syncTimeout = null;
+        }, 100);
     }
 
     async autoSaveTabs() {
         try {
             const tabs = this.tabManager.getAllTabs?.() || this.tabManager.tabs || [];
-            const activeTab = this.tabManager.getActiveTab?.();
+            const activeTab = this.tabManager.getActiveTab ? this.tabManager.getActiveTab() : null;
+
+            if (!this.tabManager || !this.tabManager.getAllTabs) {
+                console.warn('TabManager not ready for auto-saving');
+                return;
+            }
 
             if (tabs.length > 0) {
-                await this.tabStorage.saveTabs(tabs, activeTab);
+                await this.tabStorage.saveTabs(
+                    tabs,
+                    activeTab
+                );
+                console.log(`Auto-saved ${tabs.length} tabs`);
             }
         } catch (error) {
-            console.error('Error auto-saving tabs:', error);
+            console.error(
+                'Error auto-saving tabs:',
+                error
+            );
         }
     }
 
@@ -284,7 +352,10 @@ export class IpcManager {
         ipcMain.on(channel, (event, ...args) => {
             // console.log(`IPC "${channel}" called with args:`, args);
             try {
-                handler(event, ...args);
+                handler(
+                    event,
+                    ...args
+                );
             } catch (err) {
                 console.error(
                     `Error in handler for "${channel}":`, err
@@ -294,6 +365,11 @@ export class IpcManager {
     }
 
     cleanup() {
+        if (this.syncTimeout) {
+            clearTimeout(this.syncTimeout);
+            this.syncTimeout = null;
+        }
+
         const channels = Array.from(
             this.handlers.keys()
         );

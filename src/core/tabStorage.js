@@ -115,11 +115,3 @@ export class TabStorage {
         return this.storageFile;
     }
 }
-
-/*
-    UPDATE 28/10/2025
-    This file is part of Fascin-Notes
-    Use for storage the tabs
-    But when it close it not sync I will fix it tomorrow
-    ปัญหามันคือการที่มัน sync เข้ามาแล้วแต่ไม่ทันที ต้อง new tabs ก่อนถึงจะเห็น
-*/

@@ -51,21 +51,24 @@ const initTabsSync = () => {
 
 // Update tabs UI based on synced data
 const updateTabsUI = (tabs, activeIndex) => {
-    const tabsContainer = document.getElementById('tabs-container');
-    if (!tabsContainer) {
-        console.warn('Tabs container not found');
+    const tabbar = document.getElementById('tabbar');
+    if (!tabbar) {
+        console.warn('Tabbar container not found');
         return;
     }
 
-    // Clear existing tabs
-    tabsContainer.innerHTML = '';
+    // Keep the addTab button, remove old tabs
+    const addTabButton = document.getElementById('addTab');
+    const oldTabs = tabbar.querySelectorAll('.tab:not(#addTab)');
+    
+    oldTabs.forEach(tab => tab.remove());
 
-    // Create tab elements
+    // Create tab elements (insert before addTab button)
     tabs.forEach((tab, index) => {
         const tabElement = document.createElement('div');
         tabElement.className = `tab ${index === activeIndex ? 'active' : ''}`;
         tabElement.textContent = tab.title || 'Untitled';
-
+        
         // Add click event to switch tab
         tabElement.addEventListener('click', () => {
             window.electronAPI.switchTab(index);
@@ -81,7 +84,9 @@ const updateTabsUI = (tabs, activeIndex) => {
         });
 
         tabElement.appendChild(closeButton);
-        tabsContainer.appendChild(tabElement);
+        
+        // Insert before the addTab button
+        tabbar.insertBefore(tabElement, addTabButton);
     });
 
     console.log(`Updated UI with ${tabs.length} tabs, active: ${activeIndex}`);
@@ -301,6 +306,19 @@ const manualSyncTabs = () => {
     }
 }
 
+// Add event listener for the addTab button
+const initAddTabButton = () => {
+    const addTabButton = document.getElementById('addTab');
+    if (addTabButton) {
+        addTabButton.addEventListener('click', () => {
+            window.electronAPI.newTab('New Tab');
+        });
+        console.log('Add tab button initialized');
+    } else {
+        console.warn('Add tab button not found');
+    }
+}
+
 // Cleanup on page unload
 window.addEventListener('beforeunload', () => {
     keyboardInitialized = false;
@@ -310,11 +328,13 @@ window.addEventListener('beforeunload', () => {
 });
 
 // Start all initialization
-initOS();
-initKeyboardShortcuts();
-initTabsSync();
+window.addEventListener('DOMContentLoaded', () => {
+    initOS();
+    initKeyboardShortcuts();
+    initTabsSync();
+    initAddTabButton();
+});
 
-// Export functions for global access (optional)
 window.tabsManager = {
     saveCurrentTabsState,
     loadTabsFromStorage,

@@ -13,6 +13,8 @@ export class TabManager {
         this.tabOrder = [];
         this.activeTabId = null;
         this.isDestroyed = false;
+        this.lastSyncData = null;
+        this.isSyncing = false;
 
         // Components
         this.idManager = new IdManager();
@@ -252,6 +254,24 @@ export class TabManager {
             return;
         }
 
+        if (this.isSyncing) {
+            // console.warn('Already syncing');
+            return;
+        }
+
+        const newSyncData = JSON.stringify({
+            tabs: data.tabs?.map(t => t.title) || [],
+            activeIndex: data.activeIndex
+        });
+
+        if (this.lastSyncData === newSyncData) {
+            // console.log('Sync data unchanged');
+            return;
+        }
+
+        this.isSyncing = true;
+        this.lastSyncData = newSyncData;
+
         try {
             const { tabs, activeIndex } = data;
 
@@ -306,11 +326,17 @@ export class TabManager {
                     this.switchTab(this.tabOrder[0]);
                 }
             }
+
+            console.log(
+                `Synced ${tabs?.length || 0} tabs from main process`
+            );
         } catch (error) {
             console.error(
                 'Error syncing with main process:',
                 error
             );
+        } finally {
+            this.isSyncing = false;
         }
     }
 
@@ -407,6 +433,8 @@ export class TabManager {
             this.idManager = null;
             this.ipcBridge = null;
             this.validator = null;
+            this.lastSyncData = null;
+            this.isSyncing = false; 
 
         } catch (error) {
             console.error(

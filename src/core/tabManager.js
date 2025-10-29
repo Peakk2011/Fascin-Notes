@@ -43,8 +43,12 @@ export class TabManager {
         );
     }
 
-    createTab(title = `Tab ${this.tabs.length + 1}`) {
+    createTab(title = `Tab ${this.tabs.length + 1}`, shouldSync = true) {
         if (this.isDestroyed) {
+            return null;
+        }
+
+        if (this.tabs.length >= 7) {
             return null;
         }
 
@@ -63,7 +67,12 @@ export class TabManager {
         };
         this.tabs.push(tab);
 
-        this.setActiveTab(tab);
+        if (shouldSync) {
+            this.setActiveTab(tab);
+        } else {
+            this.activeTab = tab;
+        }
+
         return tab;
     }
 
