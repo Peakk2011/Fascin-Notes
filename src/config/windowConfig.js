@@ -1,6 +1,14 @@
 import { osConfig, OS } from './osConfig.js';
 import { resolvePath } from '../utils/paths.js';
 
+/**
+ * Generates the configuration object for the main BrowserWindow.
+ * It combines a base configuration (like size and webPreferences) with
+ * platform-specific settings (like title bar style and transparency)
+ * based on the current operating system.
+ *
+ * @returns {import('electron').BrowserWindowConstructorOptions} The configuration object for creating a new BrowserWindow.
+ */
 export const getWindowConfig = () => {
     const config = osConfig[OS] || osConfig.linux;
 

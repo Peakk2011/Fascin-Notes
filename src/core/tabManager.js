@@ -3,14 +3,23 @@ import path from 'node:path';
 import { resolvePath } from '../utils/paths.js';
 import { OS } from '../config/osConfig.js';
 
+/**
+ * Manages a collection of tabs, where each tab is a BrowserView,
+ * within a main BrowserWindow. It handles creating, activating,
+ * closing, and laying out tabs.
+ */
 export class TabManager {
+    /**
+     * @param {import('electron').BrowserWindow} mainWindow The main window that will host the tabs.
+     */
     constructor(mainWindow) {
         this.mainWindow = mainWindow;
         this.tabs = [];
         this.activeTab = null;
         this.isDestroyed = false;
+        this.mainWindow.setMaxListeners(20);
 
-        // Sore reference of listeners to cleanup
+        // Store references of listeners for cleanup
         this.resizeHandler = () => {
             if (!this.isDestroyed) {
                 this.layoutActiveTab();
@@ -43,7 +52,15 @@ export class TabManager {
         );
     }
 
-    createTab(title = `Tab ${this.tabs.length + 1}`, shouldSync = true) {
+    /**
+     * Creates a new tab with a given title and optional content.
+     * @param {string} [title=`Tab ${this.tabs.length + 1}`] - The title for the new tab.
+     * @param {boolean} [shouldSync=true] - Whether to immediately set the new tab as active.
+     * @param {string|null} [contentToLoad=null] - Initial text content to load into the tab's textarea.
+     * @returns {object|null} The created tab object or null if the tab limit is reached or the manager is destroyed.
+     * The tab object contains `title`, `view` (BrowserView), `loaded` status, and `contentToLoad`.
+     */
+    createTab(title = `Tab ${this.tabs.length + 1}`, shouldSync = true, contentToLoad = null) {
         if (this.isDestroyed) {
             return null;
         }
@@ -63,7 +80,8 @@ export class TabManager {
         const tab = {
             title,
             view,
-            loaded: false
+            loaded: false,
+            contentToLoad: contentToLoad // Store content to be loaded
         };
         this.tabs.push(tab);
 
@@ -76,6 +94,11 @@ export class TabManager {
         return tab;
     }
 
+    /**
+     * Sets the specified tab as the active and visible one.
+     * It handles removing the previous view and adding the new one.
+     * @param {object} tab - The tab object to activate.
+     */
     setActiveTab(tab) {
         if (this.isDestroyed || !tab) {
             return;
@@ -103,6 +126,20 @@ export class TabManager {
                         resolvePath('../index.html')
                     )
                 );
+
+                if (tab.contentToLoad) {
+                    tab.view.webContents.once('dom-ready', () => {
+                        const escapedContent = JSON.stringify(tab.contentToLoad);
+                        tab.view.webContents.executeJavaScript(
+                            `document.getElementById("autoSaveTextarea").value = ${escapedContent};`
+                        ).catch(
+                            err => console.error(
+                                'Failed to restore content on setActiveTab:',
+                                err.message
+                            )
+                        );
+                    });
+                }
                 tab.loaded = true;
             } catch (error) {
                 console.error(
@@ -124,6 +161,10 @@ export class TabManager {
         }
     }
 
+    /**
+     * Adjusts the position and size of the active tab's BrowserView
+     * to fit within the main window's content area, below the tab bar.
+     */
     layoutActiveTab() {
         if (!this.activeTab || this.isDestroyed) return;
 
@@ -143,6 +184,11 @@ export class TabManager {
         }
     }
 
+    /**
+     * Reorders the tabs array based on user drag-and-drop actions.
+     * @param {number} fromIndex - The original index of the tab being moved.
+     * @param {number} toIndex - The new index for the tab.
+     */
     reorderTabs(fromIndex, toIndex) {
         if (this.isDestroyed) return;
 
@@ -161,6 +207,10 @@ export class TabManager {
         );
     }
 
+    /**
+     * Closes a specific tab, destroys its BrowserView, and activates the next available tab.
+     * @param {object} tab - The tab object to close.
+     */
     closeTab(tab) {
         if (this.isDestroyed || !tab) {
             return;
@@ -217,18 +267,30 @@ export class TabManager {
         this.tabs.splice(idx, 1);
     }
 
+    /**
+     * @returns {number} The current number of open tabs.
+     */
     getTabCount() {
         return this.tabs.length;
     }
 
+    /**
+     * @returns {object|null} The currently active tab object.
+     */
     getActiveTab() {
         return this.activeTab;
     }
 
+    /**
+     * @returns {Array<object>} A shallow copy of the array of all tab objects.
+     */
     getAllTabs() {
         return [...this.tabs];
     }
 
+    /**
+     * Closes all open tabs.
+     */
     closeAllTabs() {
         if (this.isDestroyed) {
             return;
@@ -240,6 +302,10 @@ export class TabManager {
         });
     }
 
+    /**
+     * Cleans up all resources used by the TabManager.
+     * Destroys all BrowserViews and removes event listeners to prevent memory leaks.
+     */
     destroy() {
         this.isDestroyed = true;
         const tabsToDestroy = [...this.tabs];
@@ -283,6 +349,18 @@ export class TabManager {
         this.tabs = [];
         this.activeTab = null;
 
+        if (this.mainWindow) {
+            this.mainWindow.removeListener('resize', this.resizeHandler);
+            this.mainWindow.removeListener(
+                'enter-full-screen',
+                this.enterFullScreenHandler
+            );
+            this.mainWindow.removeListener(
+                'leave-full-screen',
+                this.leaveFullScreenHandler
+            );
+        }
+
         // Clear all references
         this.mainWindow = null;
         this.resizeHandler = null;
@@ -290,6 +368,9 @@ export class TabManager {
         this.leaveFullScreenHandler = null;
     }
 
+    /**
+     * @returns {boolean} True if the manager has been destroyed, false otherwise.
+     */
     isManagerDestroyed() {
         return this.isDestroyed;
     }

@@ -3,6 +3,12 @@ import { IdManager } from './tabs/idManager.js';
 import { TabIPCBridge } from './tabs/tabIPCBridge.js';
 import { TabValidator } from './tabs/tabValidator.js';
 
+/**
+ * Manages the entire lifecycle of tabs within the tab bar UI.
+ * This class is responsible for creating, switching, closing, reordering,
+ * and synchronizing tabs with the main process. It delegates specific tasks
+ * to specialized components like IdManager, TabIPCBridge, and TabValidator.
+ */
 export class TabManager {
     constructor(tabbar, addBtn) {
         this.tabbar = tabbar;
@@ -28,11 +34,18 @@ export class TabManager {
         this.init();
     }
 
+    /**
+     * Initializes the TabManager by setting up IPC communication and event listeners.
+     */
     init() {
         this.setupIPC();
         this.setupEventListeners();
     }
 
+    /**
+     * Sets up the IPC bridge to listen for tab state updates from the main process.
+     * @private
+     */
     setupIPC() {
         this.ipcBridge.init();
 
@@ -44,6 +57,10 @@ export class TabManager {
         });
     }
 
+    /**
+     * Attaches event listeners, primarily the click handler for the 'add tab' button.
+     * @private
+     */
     setupEventListeners() {
         if (!this.addBtn) return;
 
@@ -63,6 +80,12 @@ export class TabManager {
         );
     }
 
+    /**
+     * Creates a new tab, adds it to the DOM and internal state, and notifies the main process.
+     * @param {string} [title='New Tab'] - The initial title for the new tab.
+     * @param {boolean} [setActive=true] - Whether to make the new tab active immediately.
+     * @returns {number|null} The ID of the newly created tab, or null if creation failed (e.g., tab limit reached).
+     */
     createTab(title = 'New Tab', setActive = true) {
         if (this.isDestroyed || !this.tabbar) {
             return null;
@@ -115,6 +138,10 @@ export class TabManager {
         return id;
     }
 
+    /**
+     * Switches the active tab to the one specified by the ID.
+     * @param {number} id - The ID of the tab to activate.
+     */
     switchTab(id) {
         if (this.isDestroyed || !this.tabs.has(id) || this.activeTabId === id) {
             return;
@@ -141,6 +168,11 @@ export class TabManager {
         }
     }
 
+    /**
+     * Closes a tab specified by its ID, removes it from the DOM, and cleans up its resources.
+     * It also handles activating the next appropriate tab.
+     * @param {number} id - The ID of the tab to close.
+     */
     async closeTab(id) {
         if (this.isDestroyed || !this.tabs.has(id)) {
             return;
@@ -181,6 +213,11 @@ export class TabManager {
         }
     }
 
+    /**
+     * A helper method to fully destroy a tab object and its associated DOM element.
+     * @param {Tab} tab - The tab instance to destroy.
+     * @private
+     */
     destroyTab(tab) {
         if (!tab) return;
 
@@ -205,6 +242,11 @@ export class TabManager {
         }
     }
 
+    /**
+     * Reorders a tab from one index to another, updating the internal state and the DOM.
+     * @param {number} fromIndex - The original index of the tab.
+     * @param {number} toIndex - The new index for the tab.
+     */
     reorderTabs(fromIndex, toIndex) {
         if (this.isDestroyed) return;
 
@@ -249,6 +291,12 @@ export class TabManager {
         }
     }
 
+    /**
+     * Synchronizes the tab bar's state with the authoritative state received from the main process.
+     * This method clears all existing tabs and rebuilds them based on the provided data,
+     * ensuring the UI is consistent with the application's backend state.
+     * @param {object} data - The synchronization data from the main process.
+     */
     syncWithMainProcess(data) {
         if (this.isDestroyed || !data) {
             return;
@@ -340,6 +388,10 @@ export class TabManager {
         }
     }
 
+    /**
+     * Destroys all currently managed tabs and clears the internal state.
+     * @private
+     */
     cleanupAllTabs() {
         try {
             this.tabs.forEach((tab) => {
@@ -357,6 +409,11 @@ export class TabManager {
         }
     }
 
+    /**
+     * Updates the title of a specific tab.
+     * @param {number} id - The ID of the tab to update.
+     * @param {string} newTitle - The new title for the tab.
+     */
     updateTabTitle(id, newTitle) {
         if (this.isDestroyed || !this.tabs.has(id)) {
             return;
@@ -367,22 +424,41 @@ export class TabManager {
         tab.updateTitle(validation.sanitized || newTitle);
     }
 
+    /**
+     * @returns {Array<number>} A copy of the array representing the current order of tab IDs.
+     */
     getTabOrder() {
         return [...this.tabOrder];
     }
 
+    /**
+     * @returns {number|null} The ID of the currently active tab.
+     */
     getActiveTabId() {
         return this.activeTabId;
     }
 
+    /**
+     * Checks if a tab with the given ID exists.
+     * @param {number} id - The tab ID to check.
+     * @returns {boolean} True if the tab exists, false otherwise.
+     */
     hasTab(id) {
         return this.tabs.has(id);
     }
 
+    /**
+     * @returns {number} The total number of open tabs.
+     */
     getTabCount() {
         return this.tabOrder.length;
     }
 
+    /**
+     * Retrieves information about a specific tab.
+     * @param {number} id - The ID of the tab.
+     * @returns {object|null} An object with tab info (id, title, active status, index) or null if not found.
+     */
     getTabInfo(id) {
         const tab = this.tabs.get(id);
         if (!tab) {
@@ -395,6 +471,10 @@ export class TabManager {
         };
     }
 
+    /**
+     * Completely destroys the TabManager instance, cleaning up all tabs,
+     * event listeners, and IPC subscriptions to prevent memory leaks.
+     */
     destroy() {
         this.isDestroyed = true;
 

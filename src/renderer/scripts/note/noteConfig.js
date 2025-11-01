@@ -7,6 +7,7 @@
  * @property {number} defaultFontSize - Default font size
  * @property {number} fontStep - Font size step
  * @property {number} autoSaveDelay - Auto-save delay (ms)
+ * @property {number} mainProcessSaveThrottle - Throttle for saving to main process (ms)
  * @property {Object} status - Status texts
  */
 
@@ -18,6 +19,7 @@ export const noteFeaturesConfig = {
     defaultFontSize: 16,
     fontStep: 2,
     autoSaveDelay: 1000,
+    mainProcessSaveThrottle: 5000,
     status: {
         typing: 'Typing...',
         saving: 'Saving...',

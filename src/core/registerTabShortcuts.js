@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { ipcMain, app } from 'electron';
 
 let isRegistered = false;
 let lastActionTime = 0;
@@ -81,11 +81,10 @@ export const registerTabShortcuts = (mainWindow, tabManager) => {
                     if (tabManager.activeTab && typeof tabManager.closeTab === 'function') {
                         // Check the left tabs
                         if (tabManager.tabs.length <= 1) {
-                            // return; // Dont let me goooooo
+                            app.quit();
+                        } else {
+                            tabManager.closeTab(tabManager.activeTab);
                         }
-
-                        tabManager.closeTab(tabManager.activeTab);
-                        // console.log('Tab closed via shortcut');
                     } else {
                         console.warn('No active tab or closeTab method');
                     }

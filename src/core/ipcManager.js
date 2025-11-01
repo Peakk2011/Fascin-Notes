@@ -10,19 +10,29 @@ import { TabStorage } from './tabStorage.js';
  */
 export class IpcManager {
     constructor() {
-        this.tabManager = this.tabManager;
+        /** @type {import('./tabManager.js').TabManager | null} */
+        this.tabManager = null;
+        /** @type {Map<string, Function>} */
         this.handlers = new Map();
+        /** @type {TabStorage} */
         this.tabStorage = new TabStorage();
         this.hasInitialSync = false;
+        /** @type {NodeJS.Timeout | null} */
         this.syncTimeout = null;
     }
 
+    /**
+     * Sets up all IPC event handlers. This should be called after the manager is created.
+     */
     init() {
         this.setupOSHandler();
         this.setupTabHandlers();
         this.setupStorageHandlers();
     }
 
+    /**
+     * Registers an IPC handler to provide the operating system identifier to the renderer process.
+     */
     setupOSHandler() {
         ipcMain.handle('get-os', () => {
             console.log('get-os requested, returning:', OS);
@@ -34,9 +44,15 @@ export class IpcManager {
         });
     }
 
+    /**
+     * Registers IPC handlers for tab-related actions such as creating, switching,
+     * closing, and reordering tabs. These handlers rely on the TabManager instance.
+     */
     setupTabHandlers() {
         if (!this.tabManager) {
-            console.warn('TabManager not ready for IPC handlers');
+            console.warn(
+                'TabManager not ready for IPC handlers'
+            );
             return;
         }
 
@@ -51,16 +67,31 @@ export class IpcManager {
                 this.tabManager.setActiveTab(tab);
                 // this.syncTabsToAllWindows();
             } else {
-                console.error('Invalid tab index for switch:', index);
+                console.error(
+                    'Invalid tab index for switch:',
+                    index
+                );
             }
         });
 
         this.registerHandler('close-tab', (event, index) => {
-            if (this.tabManager?.closeTabByIndex) {
-                this.tabManager.closeTabByIndex(index);
-                // this.syncTabsToAllWindows();
+            if (!this.tabManager?.closeTabByIndex) {
+                console.error(
+                    'TabManager not ready or missing closeTabByIndex method'
+                );
+                return;
+            }
+
+            // Get tab count before closing
+            const tabCountBefore = this.tabManager.getTabCount();
+
+            if (tabCountBefore <= 1) {
+                console.log('Last tab closed - quitting app');
+                app.quit();
             } else {
-                console.error('TabManager not ready or missing closeTabByIndex method');
+                // Sync tabs to renderer after closing
+                this.tabManager.closeTabByIndex(index);
+                this.syncTabsToAllWindows();
             }
         });
 
@@ -70,6 +101,7 @@ export class IpcManager {
         });
 
         this.registerHandler('close-app', (event) => {
+            console.log('Close app requested');
             app.quit();
         });
 
@@ -78,6 +110,10 @@ export class IpcManager {
         });
     }
 
+    /**
+     * Performs the initial synchronization of tab data to the renderer process.
+     * This is typically called once the main window and tabs are ready.
+     */
     performInitialSync() {
         if (this.hasInitialSync) {
             console.log('Initial sync already performed');
@@ -98,11 +134,12 @@ export class IpcManager {
 
     // Storage handlers
     setupStorageHandlers() {
-        ipcMain.handle('save-tabs', async (event, tabs) => {
+        ipcMain.handle('save-tabs', async () => {
             try {
+                const tabs = this.tabManager?.getAllTabs?.() || this.tabManager?.tabs || [];
                 const activeTab = this.tabManager?.getActiveTab();
                 const success = await this.tabStorage.saveTabs(
-                    tabs,
+                    tabs || [],
                     activeTab
                 );
             } catch (error) {
@@ -179,6 +216,11 @@ export class IpcManager {
         });
     }
 
+    /**
+     * Handles keyboard shortcut actions forwarded from the renderer process.
+     * It calls the appropriate TabManager methods based on the action type.
+     * @param {{type: string, index?: number}} action - The shortcut action to perform.
+     */
     handleKeyboardShortcut(action) {
         if (!this.tabManager) {
             return;
@@ -196,8 +238,15 @@ export class IpcManager {
                 break;
 
             case 'close-tab':
-                if (tabs.length > 1) {
-                    this.tabManager.closeTabByIndex(activeIndex);
+                // Check if last tab
+                if (tabs.length === 1) {
+                    console.log('Last tab - closing app via shortcut');
+                    app.quit();
+                } else if (tabs.length > 1) {
+                    // Reuse the existing 'close-tab' handler
+                    // This ensures the logic is identical
+                    const handler = this.handlers.get('close-tab');
+                    handler(null, activeIndex);
                     this.syncTabsToAllWindows();
                 }
                 break;
@@ -251,6 +300,10 @@ export class IpcManager {
         }
     }
 
+    /**
+     * Sends the current tab state (all tabs and the active index) to a specific renderer process.
+     * @param {import('electron').WebContents} webContents - The renderer's webContents to send the data to.
+     */
     syncTabsToRenderer(webContents) {
         if (!this.tabManager || !webContents || webContents.isDestroyed()) {
             return;
@@ -288,6 +341,10 @@ export class IpcManager {
         );
     }
 
+    /**
+     * A throttled method to synchronize the tab state with all renderer windows.
+     * It also triggers an auto-save of the current tab state.
+     */
     syncTabsToAllWindows() {
         if (!this.tabManager) {
             return;
@@ -312,18 +369,22 @@ export class IpcManager {
         }, 100);
     }
 
+    /**
+     * Automatically saves the current state of all tabs to persistent storage.
+     * This is typically called after any change in the tab structure.
+     */
     async autoSaveTabs() {
         try {
-            const tabs = this.tabManager.getAllTabs?.() || this.tabManager.tabs || [];
-            const activeTab = this.tabManager.getActiveTab ? this.tabManager.getActiveTab() : null;
-
             if (!this.tabManager || !this.tabManager.getAllTabs) {
                 console.warn('TabManager not ready for auto-saving');
                 return;
             }
 
+            const tabs = this.tabManager.getAllTabs() || [];
+            const activeTab = this.tabManager.getActiveTab ? this.tabManager.getActiveTab() : null;
+
             if (tabs.length > 0) {
-                await this.tabStorage.saveTabs(
+                const success = await this.tabStorage.saveTabs(
                     tabs,
                     activeTab
                 );
@@ -337,11 +398,21 @@ export class IpcManager {
         }
     }
 
+    /**
+     * Sets the TabManager instance and initializes the tab-related IPC handlers.
+     * This is called after the TabManager has been created.
+     * @param {import('./tabManager.js').TabManager} tabManager - The TabManager instance.
+     */
     setTabManager(tabManager) {
         this.tabManager = tabManager;
         this.setupTabHandlers();
     }
 
+    /**
+     * A helper method to register an `ipcMain.on` listener with added logging and error handling.
+     * @param {string} channel - The IPC channel name.
+     * @param {(event: import('electron').IpcMainEvent, ...args: any[]) => void} handler - The callback function.
+     */
     registerHandler(channel, handler) {
         // Store for cleanup
         this.handlers.set(
@@ -364,6 +435,9 @@ export class IpcManager {
         });
     }
 
+    /**
+     * Removes all registered IPC listeners to prevent memory leaks when the application is closing.
+     */
     cleanup() {
         if (this.syncTimeout) {
             clearTimeout(this.syncTimeout);

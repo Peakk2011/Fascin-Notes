@@ -11,6 +11,23 @@ import { resolvePath } from '../utils/paths.js';
 import { osConfig, OS } from '../config/osConfig.js';
 import { TabChangeListener } from './tabChangeListener.js';
 
+/**
+ * Creates and configures the main application window and its core components.
+ * This function orchestrates the entire setup process, including:
+ * - Initializing the main browser window with platform-specific configurations.
+ * - Setting up IPC communication between the main and renderer processes.
+ * - Managing tabs, including restoring tabs from the previous session.
+ * - Registering global keyboard shortcuts for tab navigation and management.
+ * - Handling window lifecycle events like 'close' and 'closed' for cleanup and state persistence.
+ *
+ * @async
+ * @returns {Promise<{mainWindow: BrowserWindow, tabManager: TabManager, ipcManager: IpcManager, tabChangeListener: TabChangeListener}>}
+ * A Promise that resolves to an object containing the application's initialized core components:
+ * - `mainWindow`: The main Electron BrowserWindow instance.
+ * - `tabManager`: The instance that manages the application's tabs.
+ * - `ipcManager`: The instance that handles IPC communication.
+ * - `tabChangeListener`: The instance that listens for and broadcasts tab state changes.
+ */
 export const createWindow = async () => {
     const config = osConfig[OS] || osConfig.linux;
 
@@ -40,6 +57,7 @@ export const createWindow = async () => {
     const tabManager = new TabManager(mainWindow);
     ipcManager.setTabManager(tabManager);
 
+    // Open DevTools if not in production mode
     if (!import.meta.env?.PROD) {
         mainWindow.webContents.openDevTools(
             { mode: 'detach' }
@@ -50,7 +68,7 @@ export const createWindow = async () => {
         '../renderer/tabbar/tabbar.html'
     ));
 
-    // Load saved tabs
+    // Load saved tabs from the previous session
     const savedTabs = await ipcManager.tabStorage.loadTabs();
 
     if (savedTabs && savedTabs.length > 0) {
@@ -58,8 +76,10 @@ export const createWindow = async () => {
         savedTabs.forEach(tabInfo => {
             const newTab = tabManager.createTab(
                 tabInfo.title,
-                false
+                false,
+                tabInfo.content || null
             );
+            
             if (tabInfo.url) {
                 newTab.view.webContents.loadURL(
                     tabInfo.url
@@ -83,13 +103,11 @@ export const createWindow = async () => {
             );
         }
 
-        // setTimeout(() => {
-        //     ipcManager.syncTabsToRenderer(
-        //         mainWindow.webContents
-        //     );
-        // }, 100);
+        ipcManager.syncTabsToAllWindows();
     } else {
         tabManager.createTab('Welcome');
+        // Sync this new "Welcome" tab to the renderer process
+        ipcManager.syncTabsToAllWindows();
     }
 
     await new Promise(
@@ -113,28 +131,23 @@ export const createWindow = async () => {
 
     console.log('Keyboard shortcuts registered');
 
-    setTimeout(() => {
-        ipcManager.performInitialSync();
-    }, 500);
-
-    mainWindow.on('resize', () => {
-        tabManager.layoutActiveTab();
-    });
-
-    mainWindow.on('close', async () => {
+    const handleClose = async () => {
         const tabs = tabManager.getAllTabs();
         await tabStorage.saveTabs(
             tabs,
             tabManager.getActiveTab()
         );
-        // await ipcManager.autoSaveTabs();
-    });
+        await ipcManager.autoSaveTabs();
+    };
+
+    mainWindow.on('close', handleClose);
 
     mainWindow.once('closed', () => {
         tabChangeListener.stop();
         unregisterTabShortcuts();
         ipcManager.cleanup();
         tabManager.destroy();
+        mainWindow.removeListener('close', handleClose);
     });
 
     return {

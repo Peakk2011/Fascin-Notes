@@ -6,11 +6,17 @@ import {
     tabsData,
     setAutoSaveTimeout,
     setCurrentFontSize,
+    lastMainProcessSaveTime,
     setActiveTabId,
     addEventListenerTracker
 } from './state.js';
 
-// Set status indicator
+/**
+ * Creates a function to update the status indicator UI.
+ * @param {{statusText: HTMLElement, saveIndicator: HTMLElement}} els - An object containing the status text and save indicator DOM elements.
+ * @returns {function(string, string|null=): void} A function that takes a statusType ('typing', 'saving', 'saved', 'error')
+ * and an optional customText to update the UI.
+ */
 export const createSetStatus = (els) => {
     return (
         statusType,
@@ -28,7 +34,13 @@ export const createSetStatus = (els) => {
     };
 };
 
-// Load tab data
+/**
+ * Creates a function to load data for a specific tab into the editor.
+ * @param {{textarea: HTMLTextAreaElement}} els - An object containing the textarea element.
+ * @param {function} setStatus - The function created by `createSetStatus` to update the UI status.
+ * @returns {function(string): Promise<void>} An async function that takes a `tabId` and loads its
+ * corresponding text and font size into the textarea.
+ */
 export const createLoadTabData = (els, setStatus) => {
     return async (tabId) => {
         try {
@@ -48,7 +60,13 @@ export const createLoadTabData = (els, setStatus) => {
     };
 };
 
-// Save current tab data
+/**
+ * Creates a function to save the current state of the active tab.
+ * @param {{textarea: HTMLTextAreaElement}} els - An object containing the textarea element.
+ * @param {function} setStatus - The function created by `createSetStatus`.
+ * @returns {function(): Promise<void>} An async function that saves the textarea's content and current font size
+ * to the in-memory `tabsData` object and throttles saving the entire tab state to the main process.
+ */
 export const createSaveTabData = (els, setStatus) => {
     return async () => {
         try {
@@ -69,6 +87,20 @@ export const createSaveTabData = (els, setStatus) => {
             );
 
             setTimeout(() => setStatus('saved'), 1000);
+
+            // Save
+            const now = Date.now();
+            if (now - lastMainProcessSaveTime > noteFeaturesConfig.mainProcessSaveThrottle) {
+                if (window.electronAPI && typeof window.electronAPI.saveTabs === 'function') {
+                    console.log(`Auto-saving to main process (throttled)...`);
+                    try {
+                        await window.electronAPI.saveTabs();
+                        lastMainProcessSaveTime = now;
+                    } catch (e) {
+                        console.error('Error during throttled auto-save to main process:', e);
+                    }
+                }
+            }
         } catch (error) {
             console.error('Error saving:', error);
             setStatus('error');
@@ -77,7 +109,13 @@ export const createSaveTabData = (els, setStatus) => {
     }
 };
 
-// Zoom functions
+/**
+ * Creates a set of functions for handling zoom functionality (in, out, reset).
+ * @param {{textarea: HTMLTextAreaElement}} els - An object containing the textarea element.
+ * @param {function(): Promise<void>} saveTabData - The function created by `createSaveTabData` to persist changes.
+ * @returns {{zoomIn: function(): Promise<void>, zoomOut: function(): Promise<void>, resetZoom: function(): Promise<void>}}
+ * An object containing `zoomIn`, `zoomOut`, and `resetZoom` async functions.
+ */
 export const createZoomHandlers = (els, saveTabData) => {
     const zoomIn = async () => {
         try {
@@ -127,7 +165,13 @@ export const createZoomHandlers = (els, saveTabData) => {
     };
 };
 
-// Auto-save trigger 
+/**
+ * Creates a function that triggers a debounced auto-save.
+ * @param {function} setStatus - The function created by `createSetStatus`.
+ * @param {function(): Promise<void>} saveTabData - The function created by `createSaveTabData`.
+ * @returns {function(): void} A function that should be called on user input. It clears any pending
+ * save, sets the status to 'typing', and schedules a new save after a configured delay.
+ */
 export const createTriggerAutoSave = (setStatus, saveTabData) => {
     return () => {
         clearTimeout(autoSaveTimeout);
@@ -148,7 +192,15 @@ export const createTriggerAutoSave = (setStatus, saveTabData) => {
     };
 };
 
-// Setup event listeners
+/**
+ * Sets up all necessary event listeners for the note editor.
+ * This includes input handling for auto-save and keyboard/mouse shortcuts for zooming.
+ * @param {{textarea: HTMLTextAreaElement}} els - An object containing the textarea element.
+ * @param {function(): void} triggerAutoSave - The auto-save trigger function.
+ * @param {function(): Promise<void>} zoomIn - The zoom-in function.
+ * @param {function(): Promise<void>} zoomOut - The zoom-out function.
+ * @param {function(): Promise<void>} resetZoom - The zoom-reset function.
+ */
 export const setupEventListeners = (
     els,
     triggerAutoSave,
