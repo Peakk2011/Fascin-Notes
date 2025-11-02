@@ -61,7 +61,7 @@ export class TabChangeListener {
                     this.ipcManager.syncTabsToAllWindows();
                 }
                 this.syncTimeout = null;
-            }, 50);
+            }, 30);
 
             return result;
         };

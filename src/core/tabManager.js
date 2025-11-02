@@ -83,6 +83,7 @@ export class TabManager {
             loaded: false,
             contentToLoad: contentToLoad // Store content to be loaded
         };
+
         this.tabs.push(tab);
 
         if (shouldSync) {
@@ -128,18 +129,37 @@ export class TabManager {
                 );
 
                 if (tab.contentToLoad) {
-                    tab.view.webContents.once('dom-ready', () => {
-                        const escapedContent = JSON.stringify(tab.contentToLoad);
-                        tab.view.webContents.executeJavaScript(
-                            `document.getElementById("autoSaveTextarea").value = ${escapedContent};`
-                        ).catch(
-                            err => console.error(
-                                'Failed to restore content on setActiveTab:',
-                                err.message
-                            )
-                        );
+                    console.log('Content to load:', {
+                        length: tab.contentToLoad.length,
+                        preview: tab.contentToLoad.substring(0, 100),
+                        type: typeof tab.contentToLoad
+                    });
+
+                    tab.view.webContents.once('did-finish-load', () => {
+                        setTimeout(async () => {
+                            try {
+                                const escapedContent = JSON.stringify(tab.contentToLoad);
+
+                                await tab.view.webContents.executeJavaScript(`
+                                    (function() {
+                                        const textarea = document.getElementById("autoSaveTextarea");
+                                        if (textarea) {
+                                            textarea.value = ${escapedContent};
+                                            return true;
+                                        }
+                                        return false;
+                                    })()
+                                `);
+
+                                console.log(`Content restored for "${tab.title}"`);
+                                tab.contentToLoad = null;
+                            } catch (err) {
+                                console.error('Failed to restore content:', err.message);
+                            }
+                        }, 80);
                     });
                 }
+
                 tab.loaded = true;
             } catch (error) {
                 console.error(
@@ -216,55 +236,58 @@ export class TabManager {
             return;
         }
 
+        const wasActive = this.activeTab === tab;
         const idx = this.tabs.indexOf(tab);
         if (idx === -1) {
             return;
         }
 
-        if (this.activeTab === tab) {
-            const nextTab = this.tabs[idx + 1] || this.tabs[idx - 1] || null;
-            if (nextTab) this.setActiveTab(nextTab);
-            else this.activeTab = null;
-        }
-
-        // Remove view from window first
-        try {
-            this.mainWindow.removeBrowserView(tab.view);
-        } catch (error) {
-            console.warn(
-                'Warning: Could not remove browser view:',
-                error.message
-            );
-        }
-
-        // Then destroy webContents
-        try {
-            if (tab.view.webContents && !tab.view.webContents.isDestroyed()) {
-                tab.view.webContents.destroy();
+        if (tab.view) {
+            try {
+                this.mainWindow.removeBrowserView(tab.view);
+            } catch (error) {
+                console.warn(
+                    'Warning: Could not remove browser view:',
+                    error.message
+                );
             }
-        } catch (error) {
-            console.warn(
-                'Warning: Could not destroy web contents:',
-                error.message
-            );
-        }
 
-        // Destroy BrowserView object
-        try {
+            try {
+                if (tab.view.webContents && !tab.view.webContents.isDestroyed()) {
+                    tab.view.webContents.destroy();
+                }
+            } catch (error) {
+                console.warn(
+                    'Warning: Could not destroy web contents:',
+                    error.message
+                );
+            }
+
             // @ts-ignore - destroy method exists but not in types
-            if (typeof tab.view.destroy === 'function') {
-                tab.view.destroy();
+            if (typeof tab.view.destroy === 'function' && !tab.view.isDestroyed?.()) {
+                try {
+                    tab.view.destroy();
+                } catch (error) {
+                    console.warn(
+                        'Warning: Could not destroy browser view:',
+                        error.message
+                    );
+                }
             }
-        } catch (error) {
-            console.warn(
-                'Warning: Could not destroy browser view:',
-                error.message
-            );
+            // Clear reference
+            tab.view = null;
         }
 
-        // Clear referrence & Remove from tabs array
-        tab.view = null;
         this.tabs.splice(idx, 1);
+
+        if (wasActive) {
+            const nextTab = this.tabs[idx] || this.tabs[idx - 1] || null;
+            if (nextTab) {
+                this.setActiveTab(nextTab);
+            } else {
+                this.activeTab = null;
+            }
+        }
     }
 
     /**
@@ -300,6 +323,20 @@ export class TabManager {
         tabsToClose.forEach(tab => {
             this.closeTab(tab);
         });
+    }
+
+    closeTabByIndex(index) {
+        if (this.isDestroyed) {
+            return;
+        }
+
+        if (index < 0 || index >= this.tabs.length) {
+            console.error(`Invalid index: ${index}`);
+            return;
+        }
+
+        const tab = this.tabs[index];
+        this.closeTab(tab);
     }
 
     /**

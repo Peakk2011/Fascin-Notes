@@ -28,7 +28,6 @@ import {
     Link,
     withRouter
 } from './mintkit.js';
-import { MintAssembly } from './mintassembly.js';
 
 // Mintkit
 
@@ -41,7 +40,6 @@ export const Mint = {
     get,
     include,
     processIncludes,
-    MintAssembly,
     Router,
     navigate,
     Link,

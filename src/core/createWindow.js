@@ -31,10 +31,6 @@ import { TabChangeListener } from './tabChangeListener.js';
 export const createWindow = async () => {
     const config = osConfig[OS] || osConfig.linux;
 
-    const tabStorage = new TabStorage();
-    const ipcManager = new IpcManager(null);
-    ipcManager.init();
-
     const windowOptions = getWindowConfig();
     const mainWindow = new BrowserWindow(windowOptions);
 
@@ -55,7 +51,11 @@ export const createWindow = async () => {
     mainWindow.setMenu(null);
 
     const tabManager = new TabManager(mainWindow);
+    const tabStorage = new TabStorage();
+    const ipcManager = new IpcManager();
+
     ipcManager.setTabManager(tabManager);
+    ipcManager.init();
 
     // Open DevTools if not in production mode
     if (!import.meta.env?.PROD) {
@@ -67,6 +67,18 @@ export const createWindow = async () => {
     await mainWindow.loadFile(resolvePath(
         '../renderer/tabbar/tabbar.html'
     ));
+
+    // Initialize TabChangeListener after the window is loaded
+    const tabChangeListener = new TabChangeListener(
+        tabManager,
+        ipcManager
+    );
+    tabChangeListener.start();
+
+    registerTabShortcuts(
+        mainWindow,
+        tabManager
+    );
 
     // Load saved tabs from the previous session
     const savedTabs = await ipcManager.tabStorage.loadTabs();
@@ -101,33 +113,10 @@ export const createWindow = async () => {
             tabManager.setActiveTab(
                 tabManager.tabs[0]
             );
-        }
-
-        ipcManager.syncTabsToAllWindows();
+        } 
     } else {
         tabManager.createTab('Welcome');
-        // Sync this new "Welcome" tab to the renderer process
-        ipcManager.syncTabsToAllWindows();
     }
-
-    await new Promise(
-        resolve => setTimeout(
-            resolve,
-            200
-        )
-    );
-
-    const tabChangeListener = new TabChangeListener(
-        tabManager,
-        ipcManager
-    );
-
-    tabChangeListener.start();
-
-    registerTabShortcuts(
-        mainWindow,
-        tabManager
-    );
 
     console.log('Keyboard shortcuts registered');
 
@@ -137,10 +126,11 @@ export const createWindow = async () => {
             tabs,
             tabManager.getActiveTab()
         );
-        await ipcManager.autoSaveTabs();
+        ipcManager.notifyManualSave();
     };
 
     mainWindow.on('close', handleClose);
+    ipcManager.performInitialSync();
 
     mainWindow.once('closed', () => {
         tabChangeListener.stop();

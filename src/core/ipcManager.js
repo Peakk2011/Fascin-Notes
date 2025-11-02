@@ -19,6 +19,8 @@ export class IpcManager {
         this.hasInitialSync = false;
         /** @type {NodeJS.Timeout | null} */
         this.syncTimeout = null;
+        this.isQuitting = false;
+        this.manualSaveCompleted = false;
     }
 
     /**
@@ -59,7 +61,6 @@ export class IpcManager {
 
         this.registerHandler('new-tab', (event, title) => {
             this.tabManager.createTab(title);
-            this.syncTabsToAllWindows();
         });
 
         this.registerHandler('switch-tab', (event, index) => {
@@ -92,7 +93,6 @@ export class IpcManager {
             } else {
                 // Sync tabs to renderer after closing
                 this.tabManager.closeTabByIndex(index);
-                this.syncTabsToAllWindows();
             }
         });
 
@@ -209,26 +209,21 @@ export class IpcManager {
             }
         });
 
-        // Sync Tabs
-        this.registerHandler('request-tabs-sync', (event) => {
-            this.syncTabsToRenderer(
-                event.sender
-            );
-        });
     }
 
     // Save tabs before app quits
     setupAppHandlers() {
         app.on('before-quit', async (event) => {
+            this.prepareForQuit();
+
             if (!this.tabManager) {
                 return;
             }
             
             event.preventDefault(); 
-            
             try {
-                const tabs = this.tabManager.getAllTabs?.() || [];
-                const activeTab = this.tabManager.getActiveTab?.();
+                const tabs = this.tabManager.getAllTabs?.() || this.tabManager.tabs || [];
+                const activeTab = this.tabManager.getActiveTab?.() || this.tabManager.getActiveTab();
                 
                 await this.tabStorage.saveTabs(tabs, activeTab);
                 console.log('Saved tabs before quit');
@@ -238,6 +233,18 @@ export class IpcManager {
                 app.exit(0);
             }
         });
+    }
+
+    /**
+     * Prepares the manager for application shutdown.
+     * Sets the quitting flag and clears any pending auto-save timeouts.
+     */
+    prepareForQuit() {
+        this.isQuitting = true;
+        if (this.syncTimeout) {
+            clearTimeout(this.syncTimeout);
+            this.syncTimeout = null;
+        }
     }
 
     /**
@@ -258,7 +265,6 @@ export class IpcManager {
         switch (action.type) {
             case 'new-tab':
                 this.tabManager.createTab('New Tab');
-                this.syncTabsToAllWindows();
                 break;
 
             case 'close-tab':
@@ -271,7 +277,6 @@ export class IpcManager {
                     // This ensures the logic is identical
                     const handler = this.handlers.get('close-tab');
                     handler(null, activeIndex);
-                    this.syncTabsToAllWindows();
                 }
                 break;
 
@@ -283,7 +288,6 @@ export class IpcManager {
                         nextIndex
                         ]
                     );
-                    this.syncTabsToAllWindows();
                 }
                 break;
 
@@ -295,7 +299,6 @@ export class IpcManager {
                         prevIndex
                         ]
                     );
-                    this.syncTabsToAllWindows();
                 }
                 break;
 
@@ -306,7 +309,6 @@ export class IpcManager {
                         action.index
                         ]
                     );
-                    this.syncTabsToAllWindows();
                 }
                 break;
 
@@ -317,7 +319,6 @@ export class IpcManager {
                         tabs.length - 1
                         ]
                     );
-                    this.syncTabsToAllWindows();
                 }
                 break;
 
@@ -398,6 +399,16 @@ export class IpcManager {
      * This is typically called after any change in the tab structure.
      */
     async autoSaveTabs() {
+        if (this.manualSaveCompleted) {
+            console.log('Skipping auto-save after manual save on close.');
+            return;
+        }
+
+        if (this.isQuitting) {
+            console.log('Skipping auto-save during quit process.');
+            return;
+        }
+
         try {
             if (!this.tabManager || !this.tabManager.getAllTabs) {
                 console.warn('TabManager not ready for auto-saving');
@@ -423,13 +434,19 @@ export class IpcManager {
     }
 
     /**
+     * Notifies the manager that a manual save has occurred, typically on shutdown.
+     */
+    notifyManualSave() {
+        this.manualSaveCompleted = true;
+    }
+
+    /**
      * Sets the TabManager instance and initializes the tab-related IPC handlers.
      * This is called after the TabManager has been created.
      * @param {import('./tabManager.js').TabManager} tabManager - The TabManager instance.
      */
     setTabManager(tabManager) {
         this.tabManager = tabManager;
-        this.setupTabHandlers();
     }
 
     /**
@@ -480,6 +497,7 @@ export class IpcManager {
         this.handlers.clear();
         ipcMain.removeHandler('get-os');
         ipcMain.removeHandler('save-tabs');
+        this.isQuitting = true;
         ipcMain.removeHandler('load-tabs');
         ipcMain.removeHandler('clear-tabs');
         ipcMain.removeHandler('get-storage-path');

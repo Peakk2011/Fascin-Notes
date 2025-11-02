@@ -56,22 +56,38 @@ export class TabStorage {
     async saveTabs(tabs, activeTab = null) {
         try {
             const tabsToSave = Array.isArray(tabs) ? tabs : [];
+
+            if (tabsToSave.length === 0) {
+                console.warn(
+                    'Attempted to save an empty array of tabs. Aborting to prevent data loss.'
+                );
+                return false;
+            }
+
             await this.ensureStorageDir();
+
+            console.log('saveTabs called with:', {
+                tabCount: tabsToSave.length,
+                tabs: tabsToSave.map(t => t.title),
+                callStack: new Error().stack
+            });
 
             const tabsDataPromises = tabsToSave.map(async (tab) => {
                 let content = '';
-                if (tab.view && !tab.url) {
+
+                if (tab.view &&
+                    tab.view.webContents &&
+                    !tab.view.webContents.isDestroyed() &&
+                    !tab.url) {
                     try {
                         content = await tab.view.webContents.executeJavaScript(
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
                     } catch (e) {
-                        console.error(
-                            `Could not get content for tab "${tab.title}":`,
-                            e.message
-                        );
+                        console.warn(`Could not get content for "${tab.title}":`, e.message);
                     }
                 }
+
                 return {
                     title: tab.title,
                     url: tab.url || '',

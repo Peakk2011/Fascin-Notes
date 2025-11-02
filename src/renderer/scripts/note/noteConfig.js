@@ -16,10 +16,10 @@
 export const noteFeaturesConfig = {
     minFontSize: 8,
     maxFontSize: 128,
-    defaultFontSize: 16,
+    defaultFontSize: 14.5,
     fontStep: 2,
     autoSaveDelay: 1000,
-    mainProcessSaveThrottle: 5000,
+    mainProcessSaveThrottle: 2500,
     status: {
         typing: 'Typing...',
         saving: 'Saving...',
