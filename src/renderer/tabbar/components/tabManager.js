@@ -31,6 +31,7 @@ export class TabManager {
         this.handleAddClick = null;
         this.unsubscribeIPC = null;
 
+        this.isInitialSync = false;
         this.init();
     }
 
@@ -133,7 +134,9 @@ export class TabManager {
         }
 
         // Notify IPC
-        this.ipcBridge.notifyNewTab(sanitizedTitle);
+        if (this.isInitialSync) {
+            this.ipcBridge.notifyNewTab(sanitizedTitle);
+        }
 
         return id;
     }
@@ -373,6 +376,11 @@ export class TabManager {
                 } else if (this.tabOrder.length > 0) {
                     this.switchTab(this.tabOrder[0]);
                 }
+            }
+
+            if (!this.isInitialSync) {
+                this.isInitialSync = true;
+                console.log('Initial sync completed');
             }
 
             console.log(

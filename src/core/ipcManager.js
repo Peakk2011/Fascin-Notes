@@ -28,6 +28,7 @@ export class IpcManager {
         this.setupOSHandler();
         this.setupTabHandlers();
         this.setupStorageHandlers();
+        this.setupAppHandlers();
     }
 
     /**
@@ -213,6 +214,29 @@ export class IpcManager {
             this.syncTabsToRenderer(
                 event.sender
             );
+        });
+    }
+
+    // Save tabs before app quits
+    setupAppHandlers() {
+        app.on('before-quit', async (event) => {
+            if (!this.tabManager) {
+                return;
+            }
+            
+            event.preventDefault(); 
+            
+            try {
+                const tabs = this.tabManager.getAllTabs?.() || [];
+                const activeTab = this.tabManager.getActiveTab?.();
+                
+                await this.tabStorage.saveTabs(tabs, activeTab);
+                console.log('Saved tabs before quit');
+            } catch (error) {
+                console.error('Error saving tabs before quit:', error);
+            } finally {
+                app.exit(0);
+            }
         });
     }
 
