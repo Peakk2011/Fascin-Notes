@@ -23,7 +23,6 @@ const App = () => {
                 const noteAPI = await Page.init();
 
                 if (noteAPI) {
-                    // expose API globally for debugging or external access
                     window.noteAPI = noteAPI;
                 } else {
                     console.error('Note API initialization returned null');

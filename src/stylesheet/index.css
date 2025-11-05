@@ -48,13 +48,13 @@
     }
 }
 
-textarea {
+#autoSaveTextarea {
     width: 100%;
     min-height: 100vh;
-    padding: 1.2rem 0.85rem;
+    padding: 1.2rem 1rem;
     font-family: system-ui, -apple-system, sans-serif;
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.4;
     resize: none;
     outline: none;
     border: none;
@@ -64,6 +64,18 @@ textarea {
     position: fixed;
     font-family: 'General Sans', 'Anuphan', sans-serif;
     font-weight: 430;
+}
+
+.editable-div:empty::before {
+    content: attr(data-placeholder);
+    color: var(--theme-fg);
+    opacity: 0.65;
+    pointer-events: none;
+    position: absolute;
+}
+
+.editable-div:focus::before {
+    content: none;
 }
 
 textarea::placeholder {
@@ -90,9 +102,24 @@ textarea::placeholder {
     line-height: 0;
 
     font-size: 14px;
+    font-weight: 500;
     border-radius: 100vmax;
     background-color: var(--PrimaryButtonsColors);
 
+    width: fit-content;
+    display: inline-block;
+    text-align: center;
+    border: none;
+}
+
+#format-bold,
+#format-italic {
+    padding: 1rem 0.8rem;
+    line-height: 0;
+    font-size: 14px;
+    font-weight: bold;
+    border-radius: 100vmax;
+    background-color: var(--PrimaryButtonsColors);
     width: fit-content;
     display: inline-block;
     text-align: center;

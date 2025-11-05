@@ -23,9 +23,17 @@ export const Page = {
             </div>
     
             <div class="${config.textareaContainerClass}">
-                <textarea id="${config.textareaId}" placeholder="${config.textareaPlaceholder}" spellcheck="false"></textarea>
+                <div id="${config.textareaId}" contenteditable="true" spellcheck="false" class="editable-div" data-placeholder="${config.textareaPlaceholder}"></div>
     
                 <div class="${config.zoomControlsClass}">
+                    <button id="format-bold" title="Bold">
+                        <span>B</span>
+                    </button>
+
+                    <button id="format-italic" title="Italic">
+                        <span style="font-style: italic;">I</span>
+                    </button>
+
                     <button
                         id="${config.resetZoomButtonId}"
                         title="${config.resetZoomButtonTitle}">
@@ -60,6 +68,20 @@ export const Page = {
                 });
             }
 
+            // Format buttons
+            const boldBtn = document.getElementById('format-bold');
+            const italicBtn = document.getElementById('format-italic');
+
+            if (boldBtn) {
+                boldBtn.addEventListener('click', () => {
+                    document.execCommand('bold', false, null);
+                });
+            }
+            if (italicBtn) {
+                italicBtn.addEventListener('click', () => {
+                    document.execCommand('italic', false, null);
+                });
+            }
             // Initialize components
             const modelFind = await createModelFind();
             modelFind.init({ pageConfig: config, noteAPI });
