@@ -48,7 +48,8 @@
     }
 }
 
-#autoSaveTextarea {
+.editable-div {
+    position: relative;
     width: 100%;
     min-height: 100vh;
     padding: 1.2rem 1rem;
@@ -66,31 +67,21 @@
     font-weight: 430;
 }
 
-.editable-div:empty::before {
-    content: attr(data-placeholder);
-    color: var(--theme-fg);
-    opacity: 0.65;
-    pointer-events: none;
-    position: absolute;
-}
-
-.editable-div:focus::before {
-    content: none;
-}
-
-textarea::placeholder {
+#autoSaveTextarea::placeholder,
+.placeholder  {
     color: var(--theme-fg);
     opacity: 65%;
 }
 
 .zoom-controls {
-    position: absolute;
+    position: fixed;
     bottom: 15px;
     right: 15px;
     display: flex;
     gap: 4px;
     opacity: 0;
     transition: opacity 0.2s;
+    z-index: 3;
 }
 
 .textarea-container:hover .zoom-controls {

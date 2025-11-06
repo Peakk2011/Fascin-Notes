@@ -5,6 +5,8 @@
 import { noteFeatures } from '../scripts/note.js';
 import { fetchJSON } from '../../utils/fetch.js';
 import { createModelFind } from './contentComponents/model/modelFind.js';
+import { initRichEditor } from './rich.js';
+import '../../api/cursor-behavior.js';
 
 export const Page = {
     async markups() {
@@ -12,7 +14,7 @@ export const Page = {
             'renderer/content/pageConfig.json'
         );
         const modelFind = await createModelFind();
-        
+
         return `
             <div class="${config.statusContainerClass}">
                 <div
@@ -57,7 +59,7 @@ export const Page = {
 
             // Reset zoom button
             const resetBtn = document.getElementById(config.resetZoomButtonId);
-            
+
             if (resetBtn) {
                 resetBtn.addEventListener('click', async () => {
                     try {
@@ -68,20 +70,16 @@ export const Page = {
                 });
             }
 
-            // Format buttons
-            const boldBtn = document.getElementById('format-bold');
-            const italicBtn = document.getElementById('format-italic');
+            // Initialize rich editor component (placeholder overlay + format buttons)
+            const rich = initRichEditor({
+                editorId: config.textareaId,
+                placeholderText: config.textareaPlaceholder,
+                formatButtons: {
+                    bold: 'format-bold',
+                    italic: 'format-italic'
+                }
+            });
 
-            if (boldBtn) {
-                boldBtn.addEventListener('click', () => {
-                    document.execCommand('bold', false, null);
-                });
-            }
-            if (italicBtn) {
-                italicBtn.addEventListener('click', () => {
-                    document.execCommand('italic', false, null);
-                });
-            }
             // Initialize components
             const modelFind = await createModelFind();
             modelFind.init({ pageConfig: config, noteAPI });

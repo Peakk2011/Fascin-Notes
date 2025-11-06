@@ -6,7 +6,7 @@
     "initialStatusText": "Saved",
     "textareaContainerClass": "textarea-container",
     "textareaId": "autoSaveTextarea",
-    "textareaPlaceholder": "Start write your texts here",
+    "textareaPlaceholder": "Start writing your texts here",
     "zoomControlsClass": "zoom-controls",
     "resetZoomButtonId": "reset-zoom",
     "resetZoomButtonTitle": "Reset Zoom",

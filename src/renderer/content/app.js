@@ -24,8 +24,6 @@ const App = () => {
 
                 if (noteAPI) {
                     window.noteAPI = noteAPI;
-                } else {
-                    console.error('Note API initialization returned null');
                 }
             } catch (error) {
                 console.error('Failed to initialize Page:', error);
