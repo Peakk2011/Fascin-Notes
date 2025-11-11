@@ -13,8 +13,8 @@
     align-items: center;
     gap: 6px;
     position: fixed;
-    top: 16px;
-    right: 16px;
+    top: 20.5px;
+    right: 18px;
     z-index: 2;
 }
 
@@ -52,8 +52,7 @@
     position: relative;
     width: 100%;
     min-height: 100vh;
-    padding: 1.2rem 1rem;
-    font-family: system-ui, -apple-system, sans-serif;
+    padding: 1.4rem 1.2rem;
     font-size: 16px;
     line-height: 1.4;
     resize: none;
@@ -63,12 +62,39 @@
     background-color: transparent;
 
     position: fixed;
-    font-family: 'General Sans', 'Anuphan', sans-serif;
+    /* font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif; */
+    font-family: var(--font-text);
     font-weight: 430;
 }
 
+.editable-div div {
+    /* font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif; */
+    font-family: var(--font-text);
+}
+
+.editable-div h1,
+.editable-div h2,
+.editable-div h3 {
+    letter-spacing: -0.8px;
+    font-weight: 550;
+    margin-bottom: 1rem;
+    font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif;
+    width: 80%;
+    /* border-bottom: solid 1px var(--theme-border); */
+    /* line-height: 2; */
+}
+
+.editable-div blockquote {
+    font-weight: 550;
+    line-height: 1.6;
+    padding-left: 0.5rem;
+    border-left: solid 3px var(--theme-accent);
+    color: var(--theme-text-accent);
+    font-family: var(--font-text);
+}
+
 #autoSaveTextarea::placeholder,
-.placeholder  {
+.placeholder {
     color: var(--theme-fg);
     opacity: 65%;
 }

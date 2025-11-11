@@ -24,6 +24,11 @@ export const Page = {
                 <span id="${config.statusTextId}">${config.initialStatusText}</span>
             </div>
     
+            <!--
+                Currently, it not inserting Class ID data
+                into the JSON in some <div>s that may be left behind.
+            -->
+
             <div class="${config.textareaContainerClass}">
                 <div id="${config.textareaId}" contenteditable="true" spellcheck="false" class="editable-div" data-placeholder="${config.textareaPlaceholder}"></div>
     
@@ -40,6 +45,10 @@ export const Page = {
                         id="${config.resetZoomButtonId}"
                         title="${config.resetZoomButtonTitle}">
                         <span>${config.resetZoomButtonText}</span>
+                    </button>
+
+                    <button id="export-html-btn" title="Export as HTML">
+                        <span>Download This Note</span>
                     </button>
                 </div>
             </div>
@@ -79,6 +88,18 @@ export const Page = {
                     italic: 'format-italic'
                 }
             });
+
+            window.rich = rich;
+
+            // Export HTML
+            const exportBtn = document.getElementById('export-html-btn');
+            
+            if (exportBtn && rich) {
+                exportBtn.addEventListener('click', () => {
+                    const filename = `note-${new Date().toISOString().slice(0, 10)}.html`;
+                    rich.downloadHTML(filename);
+                });
+            }
 
             // Initialize components
             const modelFind = await createModelFind();

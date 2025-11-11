@@ -37,14 +37,15 @@
     /* Theme Colors */
     --theme-bg: hsl(0, 0%, 09%);
     --theme-fg: #ffffff;
-    --theme-accent: hsl(0, 20%, 75%);
+    --theme-accent: hsl(0, 20%, 80%);
+    --theme-text-accent: hsl(0, 20%, 90%);
     --HoverColor: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
 
     --theme-model: hsl(0, 0%, 14%);
 
     --font-primary: "Manrope", sans-serif;
-    --font-text: "Inter Tight", system-ui, sans-serif;
+    --font-text: "Inter Tight", "Leelawadee UI", system-ui, sans-serif;
     --font-size-base: 14px;
     --line-height: 1.5;
 

@@ -26,7 +26,7 @@ export const getWindowConfig = () => {
         height: windowSizeConfig.height,
         minWidth: windowSizeConfig.min.width,
         minHeight: windowSizeConfig.min.height,
-        title: `NoteAPP (${config.name})`,
+        title: `Fascinate Note (${config.name})`,
         icon: config.icon || undefined,
         ...(OS === 'darwin' && {
             titleBarStyle: 'hiddenInset',

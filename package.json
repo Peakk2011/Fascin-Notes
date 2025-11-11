@@ -1,6 +1,6 @@
 {
-  "name": "noteapp",
-  "productName": "NoteAPP",
+  "name": "Fascinate Note",
+  "productName": "Fascinate Note",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": "src/main.js",
