@@ -1,3 +1,5 @@
+// This application belongs to Mint teams; please do not mess with this thing.
+
 import { app, Menu, BrowserWindow } from 'electron';
 import { createWindow } from './core/createWindow.js';
 import { OS } from './config/osConfig.js';

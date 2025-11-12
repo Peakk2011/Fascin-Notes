@@ -1,6 +1,7 @@
-import { createPlaceholder } from '../scripts/editer/placeholder.js';
-import { handleMarkdown } from '../scripts/editer/markdown.js';
-import { exportHTML, downloadHTML } from '../scripts/editer/download.js';
+import { createPlaceholder } from '../scripts/editor/placeholder.js';
+import { handleMarkdown } from '../scripts/editor/markdown.js';
+import { handlePaste } from '../scripts/editor/handlePaste.js';
+import { exportHTML, downloadHTML } from '../scripts/editor/download.js';
 
 /**
  * Component to manage rich editor with Markdown support and HTML export
@@ -33,6 +34,11 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
         handleMarkdown(e, editor);
     }
 
+    // Paste handler wrapper
+    const pasteHandler = (e) => {
+        handlePaste(e, editor);
+    }
+
     // Handle zoom events
     const wheelHandler = (e) => {
         if (e.ctrlKey || e.metaKey) {
@@ -52,6 +58,11 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
     editor.addEventListener(
         'keydown',
         markdownHandler
+    );
+
+    editor.addEventListener(
+        'paste',
+        pasteHandler
     );
 
     editor.addEventListener(
@@ -132,6 +143,11 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
             editor.removeEventListener(
                 'keydown',
                 markdownHandler
+            );
+
+            editor.removeEventListener(
+                'paste',
+                pasteHandler
             );
 
             editor.removeEventListener(

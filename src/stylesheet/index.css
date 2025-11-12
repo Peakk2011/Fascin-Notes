@@ -3,7 +3,7 @@
     Fascin-Notes
     This file part is from Fascin-Notes
 
-    Updated: 2025-24-10
+    Updated: 2025-12-11
     License: MIT
 */
 
@@ -62,26 +62,26 @@
     background-color: transparent;
 
     position: fixed;
-    /* font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif; */
     font-family: var(--font-text);
-    font-weight: 430;
 }
 
 .editable-div div {
-    /* font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif; */
     font-family: var(--font-text);
 }
 
 .editable-div h1,
 .editable-div h2,
-.editable-div h3 {
+.editable-div h3,
+.editable-div h4 {
     letter-spacing: -0.8px;
     font-weight: 550;
     margin-bottom: 1rem;
-    font-family: 'General Sans', 'Anuphan', 'system-ui', sans-serif;
+    font-family: var(--font-display);
     width: 80%;
-    /* border-bottom: solid 1px var(--theme-border); */
-    /* line-height: 2; */
+}
+
+.editable-div h4 {
+    letter-spacing: 0px;
 }
 
 .editable-div blockquote {
@@ -91,6 +91,25 @@
     border-left: solid 3px var(--theme-accent);
     color: var(--theme-text-accent);
     font-family: var(--font-text);
+}
+
+.editable-div li {
+    position: relative;
+    padding-left: 1rem;
+}
+
+.editable-div li::before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform: translateY(-5px);
+  font-size: 22px;
+}
+
+.editable-div hr {
+    border: solid 1px currentColor;
+    opacity: 40%;
 }
 
 #autoSaveTextarea::placeholder,

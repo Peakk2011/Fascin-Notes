@@ -1,4 +1,4 @@
-import { noteFeaturesConfig } from '../../scripts/note/noteConfig.js';
+import { noteFeaturesConfig } from '../note/noteConfig.js';
 
 /**
  * Create and manage placeholder overlay for editor
@@ -21,7 +21,7 @@ export const createPlaceholder = (editor, placeholderText) => {
         padding: 1.4rem 1.2rem;
         width: 100%;
         z-index: 1;
-        font-family: 'General Sans', 'Anuphan', sans-serif;
+        font-family: var(--font-display);
         font-weight: 430;
         font-size: ${noteFeaturesConfig.defaultFontSize}px;
     `;

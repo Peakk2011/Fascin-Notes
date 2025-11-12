@@ -2,7 +2,7 @@
     Made by Mint teams
     Fascin-Notes
 
-    Updated: 2025-23-10
+    Updated: 2025-12-11
     Fork from EssentialAPP
     License: MIT
 */
@@ -46,6 +46,7 @@
 
     --font-primary: "Manrope", sans-serif;
     --font-text: "Inter Tight", "Leelawadee UI", system-ui, sans-serif;
+    --font-display: 'General Sans', 'Anuphan', 'system-ui', sans-serif;
     --font-size-base: 14px;
     --line-height: 1.5;
 
