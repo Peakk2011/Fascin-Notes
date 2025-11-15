@@ -46,8 +46,8 @@ body {
     display: flex;
 
     align-items: center;
-    height: calc(38px - 0px);
-    border-radius: 100vmax;
+    height: calc(38px - 2px);
+    border-radius: 4px;
 
     position: sticky;
     right: 0;
@@ -55,7 +55,7 @@ body {
     z-index: 10;
     opacity: 40%;
     background-color: transparent;
-    transform: translate(5px, 0px) scale(75%);
+    transform: translate(2.5px, 0px) scale(75%);
 }
 
 #addTab:hover {
@@ -102,17 +102,17 @@ body {
     min-width: 0;
     max-width: 200px;
 
-    border-right: solid 1px transparent;
-    border-left: solid 1px transparent;
-    border-top: solid 1px transparent;
+    border-right: solid 1.5px transparent;
+    border-left: solid 1.5px transparent;
+    border-top: solid 1.5px transparent;
     border-radius: 5px 5px 0 0;
 }
 
 .tab.active {
     background: var(--theme-bg);
-    border-right: solid 1px var(--theme-border);
-    border-left: solid 1px var(--theme-border);
-    border-top: solid 1px var(--theme-border);
+    border-right: solid 1.5px var(--theme-border);
+    border-left: solid 1.5px var(--theme-border);
+    border-top: solid 1.5px var(--theme-border);
 }
 
 .tab:not(.active):hover {

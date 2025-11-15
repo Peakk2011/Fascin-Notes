@@ -1,4 +1,5 @@
 import { osConfig, OS } from './osConfig.js';
+import { nativeTheme } from 'electron';
 import { resolvePath } from '../utils/paths.js';
 
 /**
@@ -36,10 +37,11 @@ export const getWindowConfig = () => {
             hasShadow: true,
         }),
         ...(OS === 'win32' && {
+            backgroundMaterial: 'mica',
             titleBarStyle: 'hidden',
             titleBarOverlay: {
-                color: '#121212',
-                symbolColor: '#ffffff',
+                color: '#00000000',
+                symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
                 height: 36 + 1
             }
         }),
