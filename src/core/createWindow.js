@@ -10,135 +10,139 @@ import { getWindowConfig } from '../config/windowConfig.js';
 import { resolvePath } from '../utils/paths.js';
 import { osConfig, OS } from '../config/osConfig.js';
 import { TabChangeListener } from './tabChangeListener.js';
+import { loadAppStateCache } from '../arch/acceleration.js';
+import { initPostLoad } from '../arch/redistributables.js';
+import { 
+    saveTabsOnClose, 
+    loadSavedTabs, 
+    createWelcomeTab 
+} from '../arch/fileSystem.js';
 
 /**
  * Creates and configures the main application window and its core components.
- * This function orchestrates the entire setup process, including:
- * - Initializing the main browser window with platform-specific configurations.
- * - Setting up IPC communication between the main and renderer processes.
- * - Managing tabs, including restoring tabs from the previous session.
- * - Registering global keyboard shortcuts for tab navigation and management.
- * - Handling window lifecycle events like 'close' and 'closed' for cleanup and state persistence.
- *
+ * Fast startup using:
+ * - App state caching
+ * - Lazy loading
+ * - Post-init heavy operations
+ * - Pre-warming
  * @async
- * @returns {Promise<{mainWindow: BrowserWindow, tabManager: TabManager, ipcManager: IpcManager, tabChangeListener: TabChangeListener}>}
- * A Promise that resolves to an object containing the application's initialized core components:
- * - `mainWindow`: The main Electron BrowserWindow instance.
- * - `tabManager`: The instance that manages the application's tabs.
- * - `ipcManager`: The instance that handles IPC communication.
- * - `tabChangeListener`: The instance that listens for and broadcasts tab state changes.
+ * @returns {Promise<{
+ *      mainWindow: BrowserWindow,
+ *      tabManager: TabManager,
+ *      ipcManager: IpcManager,
+ *      tabChangeListener: TabChangeListener}>
+ * }
  */
 export const createWindow = async () => {
+    const startTime = Date.now();
     const config = osConfig[OS] || osConfig.linux;
 
+    // Create window
     const windowOptions = getWindowConfig();
     const mainWindow = new BrowserWindow(windowOptions);
 
-    // Protect Ctrl+W/Cmd+W to closing the window
-    mainWindow.webContents.on('before-input-event', (event, input) => {
-        const tabCount = tabManager?.tabs?.length || 0;
-
-        if ((input.control || input.meta) && input.key.toLowerCase() === 'w') {
-            if (tabCount > 1) {
-                event.preventDefault();
-                console.log(
-                    'Blocked Ctrl/Cmd+W - multiple tabs open'
-                );
-            }
-        }
-    });
-
+    mainWindow.show();
+    console.log(`Window shown: ${Date.now() - startTime}ms`);
+    
+    // Lightweight init
+    mainWindow.webContents.setBackgroundThrottling(true);
     mainWindow.setMenu(null);
-
+    
     const tabManager = new TabManager(mainWindow);
     const tabStorage = new TabStorage();
     const ipcManager = new IpcManager();
-
+    
     ipcManager.setTabManager(tabManager);
     ipcManager.init();
+    
+    console.log(
+        `Core initialized: ${Date.now() - startTime}ms`
+    );
 
-    // Open DevTools if not in production mode
-    if (!import.meta.env?.PROD) {
-        mainWindow.webContents.openDevTools(
-            { mode: 'detach' }
-        );
+    // Load app state cache (synchronous)
+    const cachedAppState = await loadAppStateCache();
+    
+    if (cachedAppState) {
+        console.log(`Cache hit: ${Date.now() - startTime}ms`);
+        await loadSavedTabs(cachedAppState, tabManager);
+        console.log(`Tabs structure ready: ${Date.now() - startTime}ms`);
+    } else {
+        console.log('No cache, creating welcome tab');
+        createWelcomeTab(tabManager);
     }
 
-    await mainWindow.loadFile(resolvePath(
-        '../renderer/tabbar/tabbar.html'
-    ));
+    // Load UI
+    await mainWindow.loadFile(
+        resolvePath(
+            '../renderer/tabbar/tabbar.html'
+        )
+    );
 
-    // Initialize TabChangeListener after the window is loaded
+    console.log(`UI loaded: ${Date.now() - startTime}ms`);
+
+    // Setup lightweight components
     const tabChangeListener = new TabChangeListener(
         tabManager,
         ipcManager
     );
-    tabChangeListener.start();
 
-    registerTabShortcuts(
-        mainWindow,
-        tabManager
+    tabChangeListener.start();
+    registerTabShortcuts(mainWindow, tabManager);
+    
+    console.log(
+        `Shortcuts registered: ${Date.now() - startTime}ms`
     );
 
-    // Load saved tabs from the previous session
-    const savedTabs = await ipcManager.tabStorage.loadTabs();
+    // DOM ready schedule post-init operations
+    mainWindow.webContents.once('dom-ready', () => {
+        console.log(`DOM ready: ${Date.now() - startTime}ms`);
+        
+        // Heavy operations after dom was ready
+        setImmediate(() => initPostLoad(
+            mainWindow, 
+            tabManager, 
+            ipcManager, 
+            cachedAppState,
+            startTime
+        ));
+    });
 
-    if (savedTabs && savedTabs.length > 0) {
-        console.log(`Restoring ${savedTabs.length} tabs.`);
-        savedTabs.forEach(tabInfo => {
-            const newTab = tabManager.createTab(
-                tabInfo.title,
-                false,
-                tabInfo.content || null
-            );
-            
-            if (tabInfo.url) {
-                newTab.view.webContents.loadURL(
-                    tabInfo.url
-                );
+    // Defer non-critical event handlers
+    setImmediate(() => {
+        mainWindow.webContents.on('before-input-event', (event, input) => {
+            const tabCount = tabManager?.tabs?.length || 0;
+            if ((input.control || input.meta) && input.key.toLowerCase() === 'w') {
+                if (tabCount > 1) {
+                    event.preventDefault();
+                }
             }
         });
+    });
 
-        const activeIndex = savedTabs.findIndex(
-            t => t.isActive
-        );
-        
-        if (activeIndex >= 0 && tabManager.tabs[activeIndex]) {
-            tabManager.setActiveTab(
-                tabManager.tabs[
-                    activeIndex
-                ]
-            );
-        } else {
-            tabManager.setActiveTab(
-                tabManager.tabs[0]
-            );
-        } 
-    } else {
-        tabManager.createTab('Welcome');
-    }
-
-    console.log('Keyboard shortcuts registered');
-
-    const handleClose = async () => {
-        const tabs = tabManager.getAllTabs();
-        await tabStorage.saveTabs(
-            tabs,
-            tabManager.getActiveTab()
-        );
-        ipcManager.notifyManualSave();
-    };
+    // Setup close handler
+    const handleClose = () => saveTabsOnClose(
+        tabManager,
+        tabStorage,
+        ipcManager
+    );
 
     mainWindow.on('close', handleClose);
-    ipcManager.performInitialSync();
 
+    // Setup cleanup
     mainWindow.once('closed', () => {
         tabChangeListener.stop();
         unregisterTabShortcuts();
         ipcManager.cleanup();
         tabManager.destroy();
-        mainWindow.removeListener('close', handleClose);
+        mainWindow.removeListener(
+            'close',
+            handleClose
+        );
     });
+
+    console.log(
+        `App ready: ${Date.now() - startTime}ms\n`
+    );
 
     return {
         mainWindow,

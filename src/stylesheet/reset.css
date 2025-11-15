@@ -48,7 +48,7 @@
 
     --theme-model: hsl(0, 0%, 14%);
 
-    --font-primary: "Manrope", sans-serif;
+    --font-primary: "Manrope", "Leelawadee UI", system-ui, sans-serif;
     --font-text: "Inter Tight", "Leelawadee UI", system-ui, sans-serif;
     --font-display: 'General Sans', 'Anuphan', 'system-ui', sans-serif;
     --font-size-base: 14px;
