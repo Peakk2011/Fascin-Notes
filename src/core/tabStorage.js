@@ -69,7 +69,7 @@ export class TabStorage {
             console.log('saveTabs called with:', {
                 tabCount: tabsToSave.length,
                 tabs: tabsToSave.map(t => t.title),
-                callStack: new Error().stack
+                // callStack: new Error().stack
             });
 
             const tabsDataPromises = tabsToSave.map(async (tab) => {

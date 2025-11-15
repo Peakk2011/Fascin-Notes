@@ -8,6 +8,7 @@ import { OS } from '../config/osConfig.js';
  * within a main BrowserWindow. It handles creating, activating,
  * closing, and laying out tabs.
  */
+import { dialog } from 'electron';
 export class TabManager {
     /**
      * @param {import('electron').BrowserWindow} mainWindow The main window that will host the tabs.
@@ -17,6 +18,7 @@ export class TabManager {
         this.tabs = [];
         this.activeTab = null;
         this.isDestroyed = false;
+        this.listenersAttached = false;
         this.mainWindow.setMaxListeners(20);
 
         // Store references of listeners for cleanup
@@ -38,18 +40,21 @@ export class TabManager {
             }
         };
 
-        this.mainWindow.on(
-            'resize',
-            this.resizeHandler
-        );
-        this.mainWindow.on(
-            'enter-full-screen',
-            this.enterFullScreenHandler
-        );
-        this.mainWindow.on(
-            'leave-full-screen',
-            this.leaveFullScreenHandler
-        );
+        if (!this.listenersAttached) {
+            this.mainWindow.on(
+                'resize',
+                this.resizeHandler
+            );
+            this.mainWindow.on(
+                'enter-full-screen',
+                this.enterFullScreenHandler
+            );
+            this.mainWindow.on(
+                'leave-full-screen',
+                this.leaveFullScreenHandler
+            );
+            this.listenersAttached = true;
+        }
     }
 
     /**
@@ -66,6 +71,10 @@ export class TabManager {
         }
 
         if (this.tabs.length >= 7) {
+            dialog.showMessageBox(this.mainWindow, {
+                title: 'Fascinate Note',
+                message: 'Maximum 7 tabs allowed\nPlease resize this window.'
+            });
             return null;
         }
 

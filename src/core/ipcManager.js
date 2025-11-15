@@ -137,12 +137,26 @@ export class IpcManager {
     setupStorageHandlers() {
         ipcMain.handle('save-tabs', async () => {
             try {
-                const tabs = this.tabManager?.getAllTabs?.() || this.tabManager?.tabs || [];
+                const allTabs = this.tabManager?.getAllTabs?.() || [];
                 const activeTab = this.tabManager?.getActiveTab();
+
+                const tabsToSave = await Promise.all(allTabs.map(async (tab) => {
+                    if (tab.view && !tab.view.webContents.isDestroyed()) {
+                        const content = await tab.view.webContents.executeJavaScript(
+                            'document.getElementById("autoSaveTextarea")?.value || ""'
+                        );
+                        return { title: tab.title, content };
+                    }
+                    return { title: tab.title, content: tab.contentToLoad || '' };
+                }));
+
                 const success = await this.tabStorage.saveTabs(
-                    tabs || [],
+                    tabsToSave,
                     activeTab
                 );
+                return {
+                    success
+                };
             } catch (error) {
                 console.error(
                     'Error saving tabs via IPC:',
@@ -222,10 +236,20 @@ export class IpcManager {
             
             event.preventDefault(); 
             try {
-                const tabs = this.tabManager.getAllTabs?.() || this.tabManager.tabs || [];
+                const allTabs = this.tabManager.getAllTabs?.() || [];
                 const activeTab = this.tabManager.getActiveTab?.() || this.tabManager.getActiveTab();
                 
-                await this.tabStorage.saveTabs(tabs, activeTab);
+                const tabsToSave = await Promise.all(allTabs.map(async (tab) => {
+                    if (tab.view && !tab.view.webContents.isDestroyed()) {
+                        const content = await tab.view.webContents.executeJavaScript(
+                            'document.getElementById("autoSaveTextarea")?.value || ""'
+                        );
+                        return { title: tab.title, content };
+                    }
+                    return { title: tab.title, content: tab.contentToLoad || '' };
+                }));
+
+                await this.tabStorage.saveTabs(tabsToSave, activeTab);
                 console.log('Saved tabs before quit');
             } catch (error) {
                 console.error('Error saving tabs before quit:', error);
@@ -415,12 +439,21 @@ export class IpcManager {
                 return;
             }
 
-            const tabs = this.tabManager.getAllTabs() || [];
+            const allTabs = this.tabManager.getAllTabs() || [];
             const activeTab = this.tabManager.getActiveTab ? this.tabManager.getActiveTab() : null;
 
-            if (tabs.length > 0) {
+            if (allTabs.length > 0) {
+                const tabsToSave = await Promise.all(allTabs.map(async (tab) => {
+                    if (tab.view && !tab.view.webContents.isDestroyed()) {
+                        const content = await tab.view.webContents.executeJavaScript(
+                            'document.getElementById("autoSaveTextarea")?.value || ""'
+                        );
+                        return { title: tab.title, content };
+                    }
+                    return { title: tab.title, content: tab.contentToLoad || '' };
+                }));
                 const success = await this.tabStorage.saveTabs(
-                    tabs,
+                    tabsToSave,
                     activeTab
                 );
                 console.log(`Auto-saved ${tabs.length} tabs`);

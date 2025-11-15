@@ -36,6 +36,7 @@ class InlineTabManager {
         this.nextId = 1;
         this.isSyncing = false;
         this.lastSyncData = null;
+        this._addClickHandler = null;
     }
 
     /**
@@ -132,7 +133,7 @@ class InlineTabManager {
             if (!Array.isArray(tabs) || tabs.length === 0) {
                 console.log('Received empty or invalid tabs array, UI cleared.');
                 this.isSyncing = false;
-                this.lastSyncData = null; 
+                this.lastSyncData = null;
                 return;
             }
 
@@ -161,10 +162,79 @@ class InlineTabManager {
     }
 
     /**
+     * Attach add button click handler to request a new tab from main process.
+     */
+    attachAddButton() {
+        if (!this.addBtn) return;
+
+        if (this._addBtnAttached) return;
+        this._addBtnAttached = true;
+
+        this._addClickHandler = () => {
+            try {
+                if (window.electronAPI?.sendShortcut) {
+                    window.electronAPI.sendShortcut({ type: 'new-tab' });
+                } else if (window.electronAPI?.newTab) {
+                    window.electronAPI.newTab('New Tab');
+                } else {
+                    console.warn('No API available to create a new tab');
+                }
+            } catch (error) {
+                console.error(
+                    'Error in add button click handler:',
+                    error
+                );
+            }
+        };
+
+        try {
+            this.addBtn.addEventListener(
+                'click',
+                this._addClickHandler,
+                {
+                    passive: true
+                }
+            );
+        } catch (error) {
+            console.error(
+                'Failed to attach add button listener:',
+                error
+            );
+        }
+    }
+
+    /**
+     * Remove add button handler when destroying the manager.
+     */
+    detachAddButton() {
+        if (this.addBtn && this._addClickHandler) {
+            try {
+                this.addBtn.removeEventListener(
+                    'click',
+                    this._addClickHandler
+                );
+            } catch (error) {
+                console.error(
+                    'Failed to detach add button listener:',
+                    error
+                );
+            } finally {
+                this._addClickHandler = null;
+                this._addBtnAttached = false; // reset flag
+            }
+        }
+    }
+
+    /**
      * Removes all tab elements from the DOM and clears internal state.
      * Used for cleanup when the page is unloaded.
      */
     destroy() {
+        // detach add button handler if attached
+        if (typeof this.detachAddButton === 'function') {
+            this.detachAddButton();
+        }
+
         this.tabs.forEach((element) => {
             if (element && element.parentNode) {
                 element.remove();
@@ -207,7 +277,7 @@ const initOS = async () => {
 const initTabManager = () => {
     const tabbar = document.getElementById('tabbar');
     const addTabBtn = document.getElementById('addTab');
-    
+
     if (!tabbar || !addTabBtn) {
         console.warn('Tabbar elements not found');
         return null;
@@ -215,6 +285,10 @@ const initTabManager = () => {
 
     try {
         tabManagerInstance = new InlineTabManager(tabbar, addTabBtn);
+        // Attach add button handler so clicking creates a new tab via main process
+        if (typeof tabManagerInstance.attachAddButton === 'function') {
+            tabManagerInstance.attachAddButton();
+        }
         console.log('InlineTabManager initialized');
         return tabManagerInstance;
     } catch (error) {
@@ -520,7 +594,7 @@ window.addEventListener('beforeunload', () => {
         tabManagerInstance.destroy();
         tabManagerInstance = null;
     }
-    
+
     keyboardInitialized = false;
     tabsInitialized = false;
     lastShortcutTime = 0;

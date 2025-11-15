@@ -40,7 +40,7 @@ export const getWindowConfig = () => {
             titleBarOverlay: {
                 color: '#121212',
                 symbolColor: '#ffffff',
-                height: 36
+                height: 36 + 1
             }
         }),
         webPreferences: {
