@@ -16,6 +16,7 @@
     top: 20.5px;
     right: 18px;
     z-index: 2;
+    background-color: var(--theme-bg);
 }
 
 #statusText {
@@ -27,12 +28,12 @@
     width: 10px;
     height: 10px;
     border-radius: 50%;
-    background: #22c55e;
+    background: hsl(80, 40%, 60%);
     transition: background 0.2s;
 }
 
 .dot.saving {
-    background: #f59e0b;
+    background: hsl(29, 44%, 56%);
     animation: pulse 1.5s infinite;
 }
 
@@ -99,12 +100,12 @@
 }
 
 .editable-div li::before {
-  content: "•";
-  position: absolute;
-  left: 0;
-  top: 0;
-  transform: translateY(-5px);
-  font-size: 22px;
+    content: "•";
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform: translateY(-5px);
+    font-size: 22px;
 }
 
 .editable-div hr {
@@ -120,10 +121,12 @@
 
 .zoom-controls {
     position: fixed;
-    bottom: 15px;
-    right: 15px;
+    bottom: 1.35rem;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: max-content;
     display: flex;
-    gap: 4px;
+    gap: 8px;
     opacity: 0;
     transition: opacity 0.2s;
     z-index: 3;
@@ -133,14 +136,18 @@
     opacity: 1;
 }
 
-#reset-zoom {
-    padding: 1rem 0.8rem;
+#reset-zoom,
+#export-html-btn,
+#format-bold,
+#format-italic {
+    padding: 1.15rem 0.95rem;
     line-height: 0;
 
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 500;
     border-radius: 100vmax;
     background-color: var(--PrimaryButtonsColors);
+    outline: solid 1.5px var(--theme-border);
 
     width: fit-content;
     display: inline-block;
@@ -150,20 +157,18 @@
 
 #format-bold,
 #format-italic {
-    padding: 1rem 0.8rem;
-    line-height: 0;
-    font-size: 14px;
-    font-weight: bold;
-    border-radius: 100vmax;
-    background-color: var(--PrimaryButtonsColors);
-    width: fit-content;
-    display: inline-block;
-    text-align: center;
-    border: none;
+    width: 34px;
 }
 
-#reset-zoom:hover {
+#reset-zoom:hover,
+#export-html-btn:hover,
+#format-bold:hover,
+#format-italic:hover {
     background-color: var(--theme-accent);
+    cursor: pointer;
+    color: #000000;
+    fill: #000000;
+    font-weight: 500;
 }
 
 #reset-zoom:hover span {

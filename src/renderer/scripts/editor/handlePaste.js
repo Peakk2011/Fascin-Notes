@@ -4,7 +4,7 @@
  * @param {HTMLElement} editor - Editor element
  */
 
-export const handlePaste = (e, editer) => {
+export const handlePaste = (e, editor) => {
     e.preventDefault();
 
     const clipboardData = e.clipboardData || window.clipboardData;
@@ -50,7 +50,7 @@ export const handlePaste = (e, editer) => {
     selection.addRange(range);
 
     // Trigger input event
-    editer.dispatchEvent(new Event(
+    editor.dispatchEvent(new Event(
         'input',
         {
             bubbles: true

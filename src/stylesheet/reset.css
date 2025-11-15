@@ -37,7 +37,11 @@
     /* Theme Colors */
     --theme-bg: hsl(0, 0%, 8.5%);
     --theme-fg: #ffffff;
-    --theme-accent: hsl(0, 20%, 80%);
+    --theme-accent: hsl(120, 7%, 85%);
+
+    --theme-accent-selection: hsl(120, 2.5%, 20%);
+    --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
+
     --theme-text-accent: hsl(0, 20%, 90%);
     --HoverColor: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
@@ -57,7 +61,12 @@
     --ResetMargin: 0;
     --ResetBoxSizing: border-box;
     /* Buttons */
-    --PrimaryButtonsColors: var(--HoverColor);
+    --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
+}
+
+::selection {
+    background: var(--theme-accent-selection);
+    color: var(--theme-accent-selection-texts);
 }
 
 /* (default) */
@@ -65,10 +74,10 @@
     :root {
         --theme-bg: hsl(0, 0%, 8.5%);
         --theme-fg: #ffffff;
-        --theme-accent: hsl(0, 20%, 75%);
+        --theme-accent: hsl(120, 7%, 85%);
         --HoverColor: #2a2a2a;
         --theme-border: hsl(0, 0%, 20%);
-        --PrimaryButtonsColors: var(--HoverColor);
+        --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
         color-scheme: dark;
         background: var(--theme-bg);
         color: var(--theme-fg);
@@ -81,7 +90,7 @@
         --theme-fg: #0f0f0f;
         --HoverColor: #dfdfdf;
         --theme-border: hsl(0, 0%, 80%);
-        --theme-accent: #F6C4C5;
+        --theme-accent: hsl(200, 9%, 32%);
         --PrimaryButtonsColors: hsl(50, 10%, 80%);
         --PrimaryButtonsColors: var(--HoverColor);
         color-scheme: light;

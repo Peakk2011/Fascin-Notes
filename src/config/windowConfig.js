@@ -14,10 +14,10 @@ export const getWindowConfig = () => {
     const config = osConfig[OS] || osConfig.linux;
 
     const windowSizeConfig = {
-        width: 600,
-        height: 500,
+        width: 510,
+        height: 570,
         min: {
-            width: 360,
+            width: 400,
             height: 400
         }
     }

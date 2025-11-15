@@ -10,5 +10,8 @@
     "zoomControlsClass": "zoom-controls",
     "resetZoomButtonId": "reset-zoom",
     "resetZoomButtonTitle": "Reset Zoom",
-    "resetZoomButtonText": "Reset Text Sizes"
+    "resetZoomButtonText": "Reset Text Sizes",
+    "exportHtmlButtonId": "export-html-btn",
+    "exportHtmlButtonTitle": "Export as HTML",
+    "exportHtmlButtonText": "Download This Note"
 }

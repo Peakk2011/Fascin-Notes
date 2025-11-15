@@ -47,8 +47,8 @@ export const Page = {
                         <span>${config.resetZoomButtonText}</span>
                     </button>
 
-                    <button id="export-html-btn" title="Export as HTML">
-                        <span>Download This Note</span>
+                    <button id="${config.exportHtmlButtonId}" title="${config.exportHtmlButtonTitle}">
+                        <span>${config.exportHtmlButtonText}</span>
                     </button>
                 </div>
             </div>
@@ -92,7 +92,7 @@ export const Page = {
             window.rich = rich;
 
             // Export HTML
-            const exportBtn = document.getElementById('export-html-btn');
+            const exportBtn = document.getElementById(config.exportHtmlButtonId);
             
             if (exportBtn && rich) {
                 exportBtn.addEventListener('click', () => {
