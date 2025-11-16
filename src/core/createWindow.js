@@ -1,4 +1,5 @@
 import { BrowserWindow } from "electron";
+import { promises as fs } from 'fs';
 import { TabManager } from './tabManager.js';
 import { IpcManager } from './ipcManager.js';
 import { TabStorage } from './tabStorage.js';
@@ -66,8 +67,13 @@ export const createWindow = async () => {
         `Core initialized: ${Date.now() - startTime}ms`
     );
 
-    const loadMainInterface = mainWindow.loadFile(
-        resolvePath('../renderer/tabbar/tabbar.html')
+    // Load UI
+    const tabbarPath = resolvePath('../renderer/tabbar/tabbar.html');
+    const tabbarHtml = await fs.readFile(tabbarPath, 'utf-8');
+    
+    const loadMainInterface = mainWindow.loadURL(
+        `data:text/html;charset=UTF-8,${encodeURIComponent(tabbarHtml)}`,
+        { baseURLForDataURL: `file://${tabbarPath}` }
     );
 
     const cachePromise = loadAppStateCache();

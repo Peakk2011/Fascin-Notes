@@ -60,7 +60,7 @@ body {
 
 #addTab:hover {
     opacity: 100%;
-    background-color: var(--HoverColor);
+    background-color: var(--hover-color);
 }
 
 /* 
@@ -116,7 +116,7 @@ body {
 }
 
 .tab:not(.active):hover {
-    background-color: var(--HoverColor);
+    background-color: var(--hover-color);
 }
 
 .tab-title {

@@ -3,7 +3,7 @@
     Fascin-Notes
     This file part is from Fascin-Notes
 
-    Updated: 2025-12-11
+    Updated: 2025-16-11
     License: MIT
 */
 
@@ -20,7 +20,7 @@
 }
 
 #statusText {
-    font-family: 'Satoshi', 'Anuphan', sans-serif;
+    font-family: var(--font-display);
     font-weight: 500;
 }
 
@@ -50,7 +50,7 @@
 }
 
 .editable-div {
-    position: relative;
+    position: fixed;
     width: 100%;
     min-height: 100vh;
     padding: 1.4rem 1.2rem;
@@ -59,11 +59,9 @@
     resize: none;
     outline: none;
     border: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
     background-color: transparent;
-
-    position: fixed;
     font-family: var(--font-text);
+    transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .editable-div div {
@@ -74,24 +72,24 @@
 .editable-div h2,
 .editable-div h3,
 .editable-div h4 {
+    font-family: var(--font-display);
     letter-spacing: -0.8px;
     font-weight: 550;
     margin-bottom: 1rem;
-    font-family: var(--font-display);
     width: 80%;
 }
 
 .editable-div h4 {
-    letter-spacing: 0px;
+    letter-spacing: 0;
 }
 
 .editable-div blockquote {
+    font-family: var(--font-text);
     font-weight: 550;
     line-height: 1.6;
     padding-left: 0.5rem;
     border-left: solid 3px var(--theme-accent);
     color: var(--theme-text-accent);
-    font-family: var(--font-text);
 }
 
 .editable-div li {
@@ -110,13 +108,13 @@
 
 .editable-div hr {
     border: solid 1px currentColor;
-    opacity: 40%;
+    opacity: 0.4;
 }
 
 #autoSaveTextarea::placeholder,
 .placeholder {
     color: var(--theme-fg);
-    opacity: 65%;
+    opacity: 0.65;
 }
 
 .zoom-controls {
@@ -142,13 +140,11 @@
 #format-italic {
     padding: 1.15rem 0.95rem;
     line-height: 0;
-
     font-size: 13px;
     font-weight: 500;
     border-radius: 100vmax;
     background-color: var(--PrimaryButtonsColors);
     outline: solid 1.5px var(--theme-border);
-
     width: fit-content;
     display: inline-block;
     text-align: center;
@@ -177,17 +173,15 @@
 }
 
 @media screen and (max-width: 720px) {
-
     .contentTEXT {
         display: inline-block;
     }
-
 }
 
 @media (max-width: 340px) {
     .contentTEXT {
         left: 17px;
-        transform: translateX(0px);
+        transform: translateX(0);
     }
 
     #GotoHomePage {

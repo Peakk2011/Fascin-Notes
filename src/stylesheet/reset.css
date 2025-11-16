@@ -2,15 +2,10 @@
     Made by Mint teams
     Fascin-Notes
 
-    Updated: 2025-12-11
+    Updated: 2025-16-11
     Fork from EssentialAPP
     License: MIT
 */
-
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Inter+Tight:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Hind:wght@300&family=IBM+Plex+Sans+Thai:wght@300&family=Inter+Tight:wght@300&family=Noto+Sans+SC:wght@300&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Anuphan:wght@100..700&display=swap');
 
 :where(li, a) {
     text-decoration: none;
@@ -20,6 +15,42 @@
 ::-webkit-scrollbar {
     width: 0px;
     background: transparent;
+}
+
+@font-face {
+    font-family: 'General Sans';
+    src: url('../../assets/typefaces/GeneralSans-Variable.woff2') format('woff2-variations');
+
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Manrope';
+    src: url('../../assets/typefaces/Manrope-VariableFont_wght.ttf') format('truetype-variations');
+
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Inter Tight';
+    src: url('../../assets/typefaces/InterTight-VariableFont_wght.ttf') format('truetype-variations');
+
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Anuphan';
+    src: url('../../assets/typefaces/Anuphan-VariableFont_wght.ttf') format('truetype-variations');
+
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
 }
 
 :root {
@@ -32,7 +63,7 @@
     --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
 
     --theme-text-accent: hsl(0, 20%, 90%);
-    --HoverColor: #2a2a2a;
+    --hover-color: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
 
     --theme-model: hsl(0, 0%, 14%);
@@ -64,7 +95,7 @@
         --theme-bg: hsl(0, 0%, 8.5%);
         --theme-fg: #ffffff;
         --theme-accent: hsl(120, 7%, 85%);
-        --HoverColor: #2a2a2a;
+        --hover-color: #2a2a2a;
         --theme-border: hsl(0, 0%, 20%);
         --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
         color-scheme: dark;
@@ -77,11 +108,11 @@
     :root {
         --theme-bg: #f9f9f9;
         --theme-fg: #0f0f0f;
-        --HoverColor: #dfdfdf;
+        --hover-color: #dfdfdf;
         --theme-border: hsl(0, 0%, 80%);
         --theme-accent: hsl(200, 9%, 32%);
         --PrimaryButtonsColors: hsl(50, 10%, 80%);
-        --PrimaryButtonsColors: var(--HoverColor);
+        --PrimaryButtonsColors: var(--hover-color);
         color-scheme: light;
         background: var(--theme-bg);
         color: var(--theme-fg);
