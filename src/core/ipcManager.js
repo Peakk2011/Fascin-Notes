@@ -224,28 +224,6 @@ export class IpcManager {
                 );
             }
         });
-
-        // Handler to load initial HTML content
-        ipcMain.handle('load-initial-html', async () => {
-            try {
-                const htmlPath = path.join(app.getAppPath(), '..', 'tabbar', 'tabbar.html');
-                const htmlContent = await fs.readFile(htmlPath, 'utf-8');
-                console.log('Initial HTML content loaded successfully.');
-                
-                return {
-                    success: true,
-                    content: htmlContent
-                };
-            } catch (error) {
-                console.error('Error loading initial HTML:', error);
-                return {
-                    success: false,
-                    error: error.message,
-                    content: '<p>Error loading content. Please check logs.</p>'
-                };
-            }
-        });
-
     }
 
     // Save tabs before app quits
@@ -557,6 +535,5 @@ export class IpcManager {
         ipcMain.removeHandler('load-tabs');
         ipcMain.removeHandler('clear-tabs');
         ipcMain.removeHandler('get-storage-path');
-        ipcMain.removeHandler('load-initial-html');
     }
 }

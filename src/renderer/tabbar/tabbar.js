@@ -15,6 +15,4 @@ export const tabbar = () => {
     return tabManager;
 };
 
-document.addEventListener('DOMContentLoaded', tabbar, {
-    once: true
-});
+tabbar();

@@ -112,9 +112,18 @@ export const loadSavedTabs = async (cachedAppState, tabManager) => {
     };
 };
 
-export const createWelcomeTab = (tabManager) => {
+export const createWelcomeTab = (tabManager, options = {}) => {
+    const { deferSave = false } = options;
+
     console.log('Creating welcome tab');
-    return tabManager.createTab('Welcome');
+    const tab = tabManager.createTab('Welcome');
+
+    if (deferSave) {
+        console.log('Deferring welcome tab save until UI ready');
+        return tab;
+    }
+
+    return tab;
 };
 
 

@@ -1,7 +1,6 @@
-// This application belongs to Mint teams; please do not mess with this thing.
-
 import { app, Menu, BrowserWindow } from 'electron';
 import { createWindow } from './core/createWindow.js';
+import { preloadAssets } from './core/preloadAssets.js';
 import { OS } from './config/osConfig.js';
 
 const isAppleSilicon = process.arch === 'arm64';
@@ -18,11 +17,12 @@ if (OS === 'win32' && process.argv.some(arg => arg.includes('--squirrel'))) {
 }
 
 app.whenReady().then(async () => {
+	await preloadAssets();
 	await createWindow();
 
-	app.on('activate', () => {
+	app.on('activate', async () => {
 		if (BrowserWindow.getAllWindows().length === 0) {
-			createWindow();
+			await createWindow();
 		}
 	});
 });

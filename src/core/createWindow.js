@@ -1,35 +1,20 @@
-import { BrowserWindow } from "electron";
-import { promises as fs } from 'fs';
-import { TabManager } from './tabManager.js';
-import { IpcManager } from './ipcManager.js';
-import { TabStorage } from './tabStorage.js';
-import {
-    registerTabShortcuts,
-    unregisterTabShortcuts
-} from './registerTabShortcuts.js';
-import { getWindowConfig } from '../config/windowConfig.js';
-import { resolvePath } from '../utils/paths.js';
-import { osConfig, OS } from '../config/osConfig.js';
-import { TabChangeListener } from './tabChangeListener.js';
 import { loadAppStateCache } from '../arch/acceleration.js';
-import { initPostLoad } from '../arch/redistributables.js';
 import {
-    saveTabsOnClose,
-    loadSavedTabs,
-    createWelcomeTab
-} from '../arch/fileSystem.js';
-import { OpenDevTools } from './devtools.js';
+    initializeWindow,
+    initializeCoreManagers,
+    setupTabChangeListener
+} from './window/initializer.js';
+import {
+    setupInputHandlers,
+    setupCloseHandler,
+    setupCleanup,
+    setupPostInitOperations
+} from './window/lifeCycle.js';
+import { initializeTabs } from './window/tabInitializer.js';
+import { loadInterface } from './window/interfaceLoader.js';
 
 /**
- * Creates and configures the main application window and its core components.
- * Fast startup using:
- * - Parallel operations 
- * - Cached configurations 
- * - Non-blocking awaits
- * - Deferred handlers 
- * 
- * Target: <20ms window show
- * 
+ * Creates and configures the main application window.
  * @async
  * @returns {Promise<{
  *      mainWindow: BrowserWindow,
@@ -38,130 +23,53 @@ import { OpenDevTools } from './devtools.js';
  *      tabChangeListener: TabChangeListener}>
  * }
  */
+
 export const createWindow = async () => {
     const startTime = Date.now();
-    const config = osConfig[OS] || osConfig.linux;
 
-    // Create window
-    const windowOptions = getWindowConfig();
-    const mainWindow = new BrowserWindow(windowOptions);
-
-    mainWindow.show();
-    // Initialize DevTools Manager
-    new OpenDevTools(mainWindow);
-
+    // 1. Create and show window
+    const mainWindow = initializeWindow();
     console.log(`Window shown: ${Date.now() - startTime}ms`);
 
-    // Lightweight init
-    mainWindow.webContents.setBackgroundThrottling(true);
-    mainWindow.setMenu(null);
+    // 2. Initialize core managers
+    const { tabManager, tabStorage, ipcManager } = initializeCoreManagers(mainWindow);
+    console.log(`Core initialized: ${Date.now() - startTime}ms`);
 
-    const tabManager = new TabManager(mainWindow);
-    const tabStorage = new TabStorage();
-    const ipcManager = new IpcManager();
+    // 3. Setup tab change listener and shortcuts
+    const tabChangeListener = setupTabChangeListener(mainWindow, tabManager, ipcManager);
+    console.log(`Shortcuts registered: ${Date.now() - startTime}ms`);
 
-    ipcManager.setTabManager(tabManager);
-    ipcManager.init();
-
-    console.log(
-        `Core initialized: ${Date.now() - startTime}ms`
-    );
-
-    // Load UI
-    const tabbarPath = resolvePath('../renderer/tabbar/tabbar.html');
-    const tabbarHtml = await fs.readFile(tabbarPath, 'utf-8');
-    
-    const loadMainInterface = mainWindow.loadURL(
-        `data:text/html;charset=UTF-8,${encodeURIComponent(tabbarHtml)}`,
-        { baseURLForDataURL: `file://${tabbarPath}` }
-    );
-
-    const cachePromise = loadAppStateCache();
-
-    // Setup lightweight components
-    const tabChangeListener = new TabChangeListener(
-        tabManager,
-        ipcManager
-    );
-
-    tabChangeListener.start();
-    registerTabShortcuts(mainWindow, tabManager);
-
-    console.log(
-        `Shortcuts registered: ${Date.now() - startTime}ms`
-    );
-
-    const cachedAppState = await cachePromise;
+    // 4. Load interface and cache in parallel
+    const [_, cachedAppState] = await Promise.all([
+        loadInterface(mainWindow),
+        loadAppStateCache()
+    ]);
 
     if (cachedAppState) {
-        console.log(
-            `Cache hit: ${Date.now() - startTime}ms`
-        );
-        await loadSavedTabs(cachedAppState, tabManager);
-        console.log(
-            `Tabs structure ready: ${Date.now() - startTime}ms`
-        );
-    } else {
-        console.log('No cache, creating welcome tab');
-        createWelcomeTab(tabManager);
+        console.log(`Cache hit: ${Date.now() - startTime}ms`);
     }
 
-    await loadMainInterface;
+    // 5. Initialize tabs
+    await initializeTabs(tabManager, cachedAppState);
+    console.log(`Tabs structure ready: ${Date.now() - startTime}ms`);
+    console.log(`UI loaded: ${Date.now() - startTime}ms`);
 
-    console.log(
-        `UI loaded: ${Date.now() - startTime}ms`
-    );
+    // 6. Setup lifecycle handlers
+    setupInputHandlers(mainWindow, tabManager);
+    const handleClose = setupCloseHandler(mainWindow, tabManager, tabStorage, ipcManager);
+    setupCleanup(mainWindow, tabChangeListener, ipcManager, tabManager, handleClose);
 
-    // DOM ready schedule post-init operations
-    mainWindow.webContents.once('dom-ready', () => {
-        console.log(`DOM ready: ${Date.now() - startTime}ms`);
-
-        // Heavy operations after dom was ready
-        setImmediate(() => initPostLoad(
-            mainWindow,
-            tabManager,
-            ipcManager,
-            cachedAppState,
-            startTime
-        ));
-    });
-
-    // Defer non-critical event handlers
-    setImmediate(() => {
-        mainWindow.webContents.on('before-input-event', (event, input) => {
-            const tabCount = tabManager?.tabs?.length || 0;
-            if ((input.control || input.meta) && input.key.toLowerCase() === 'w') {
-                if (tabCount > 1) {
-                    event.preventDefault();
-                }
-            }
-        });
-    });
-
-    // Setup close handler
-    const handleClose = () => saveTabsOnClose(
+    // 7. Setup post-init operations
+    setupPostInitOperations(
+        mainWindow,
         tabManager,
         tabStorage,
-        ipcManager
+        ipcManager,
+        cachedAppState,
+        startTime
     );
 
-    mainWindow.on('close', handleClose);
-
-    // Setup cleanup
-    mainWindow.once('closed', () => {
-        tabChangeListener.stop();
-        unregisterTabShortcuts();
-        ipcManager.cleanup();
-        tabManager.destroy();
-        mainWindow.removeListener(
-            'close',
-            handleClose
-        );
-    });
-
-    console.log(
-        `App ready: ${Date.now() - startTime}ms\n`
-    );
+    console.log(`App ready: ${Date.now() - startTime}ms\n`);
 
     return {
         mainWindow,

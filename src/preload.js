@@ -67,10 +67,6 @@ try {
         requestTabsSync: () => ipcRenderer.send(
             'request-tabs-sync'
         ),
-
-        loadInitialHTML: () => ipcRenderer.invoke(
-            'load-initial-html'
-        ),
     });
 } catch (error) {
     console.error('Error in preload:', error);
