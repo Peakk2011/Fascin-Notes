@@ -38,10 +38,20 @@ export const getCachePath = (tabId) => {
 // Save HTML cache content for each of the tab
 export const saveTabCache = async (tabId, htmlContent) => {
     try {
+        await ensureCacheDir();
+        const cachePath = getCachePath(tabId);
 
+        if (!htmlContent || htmlContent.length === 0) {
+            console.log(`Empty content for tab ${tabId}, skipping cache`);
+            return false;
+        }
+
+        await fs.writeFile(cachePath, htmlContent, 'utf-8');
+        console.log(`Cache saved for tab: ${tabId} (${(htmlContent.length / 1024).toFixed(1)}KB)`);
+        return true;
     } catch (error) {
         console.error(
-            `Failed to save cache for tab ${tabId}`,
+            `Failed to save cache for tab ${tabId}:`,
             error
         );
         return false;
@@ -56,9 +66,10 @@ export const loadTabCache = async (tabId) => {
             cachePath,
             'utf-8'
         );
+        console.log(`Cache loaded for tab: ${tabId} (${(content.length / 1024).toFixed(1)}KB)`);
         return content;
     } catch (error) {
-        // Hm.. Not need for that
+        console.log(`No cache for tab: ${tabId}`);
         return null;
     }
 };
@@ -131,6 +142,7 @@ export const loadAppStateCache = async () => {
         );
         return state;
     } catch (error) {
+        console.log('No app state cache found');
         return null;
     }
 };

@@ -131,7 +131,6 @@ class InlineTabManager {
 
             // Create new tabs
             if (!Array.isArray(tabs) || tabs.length === 0) {
-                console.log('Received empty or invalid tabs array, UI cleared.');
                 this.isSyncing = false;
                 this.lastSyncData = null;
                 return;
@@ -261,9 +260,7 @@ const initOS = async () => {
     if (typeof window.electronAPI.getOS === 'function') {
         try {
             const os = await window.electronAPI.getOS();
-            console.log('OS received via request:', os);
             document.body.classList.add(os);
-            console.log('Body classes:', document.body.className);
         } catch (error) {
             console.error('Error getting OS:', error);
         }
@@ -289,7 +286,6 @@ const initTabManager = () => {
         if (typeof tabManagerInstance.attachAddButton === 'function') {
             tabManagerInstance.attachAddButton();
         }
-        console.log('InlineTabManager initialized');
         return tabManagerInstance;
     } catch (error) {
         console.error('Failed to initialize TabManager:', error);
@@ -320,14 +316,11 @@ const initTabsSync = () => {
 
     // Listen for tabs sync from main process
     window.electronAPI.onTabsSync((tabsData) => {
-        console.log('Tabs synced from main process:', tabsData);
         updateTabsUI(tabsData.tabs, tabsData.activeTabIndex);
     });
 
     // Request initial tabs sync
     window.electronAPI.requestTabsSync();
-    console.log('Tabs sync system initialized');
-
     tabsInitialized = true;
 }
 
@@ -352,7 +345,6 @@ const updateTabsUI = (tabs, activeIndex) => {
         });
     }
 
-    console.log(`Updated UI with ${tabs.length} tabs via InlineTabManager`);
 }
 
 /**
@@ -459,7 +451,7 @@ const initKeyboardShortcuts = () => {
             if (!canExecuteShortcut()) {
                 return
             };
-            console.log('Frontend: Ctrl+9 pressed');
+
             window.electronAPI.sendShortcut({ type: 'switch-to-last' });
             return;
         }
@@ -471,7 +463,7 @@ const initKeyboardShortcuts = () => {
             if (!canExecuteShortcut()) {
                 return;
             }
-            console.log('Frontend: Ctrl+S pressed - saving tabs');
+
             saveCurrentTabsState();
             return;
         }
@@ -516,7 +508,6 @@ const loadTabsFromStorage = async () => {
     try {
         const result = await window.electronAPI.loadTabs();
         if (result.success) {
-            console.log('Loaded tabs from storage:', result.tabs);
             return result.tabs;
         } else {
             console.error('Failed to load tabs:', result.error);
@@ -542,7 +533,6 @@ const getStorageInfo = async () => {
     try {
         const result = await window.electronAPI.getStoragePath();
         if (result.success) {
-            console.log('Tabs storage path:', result.path);
             return result.path;
         } else {
             console.error('Failed to get storage path:', result.error);
@@ -583,7 +573,6 @@ const clearSavedTabs = async () => {
 const manualSyncTabs = () => {
     if (typeof window.electronAPI?.requestTabsSync === 'function') {
         window.electronAPI.requestTabsSync();
-        console.log('Manual tabs sync requested');
     }
 }
 
@@ -616,5 +605,3 @@ window.tabsManager = {
     updateTabsUI,
     getTabManagerInstance: () => tabManagerInstance
 };
-
-console.log('Renderer tabs system initialized');

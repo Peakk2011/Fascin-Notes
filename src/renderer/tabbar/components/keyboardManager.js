@@ -18,7 +18,6 @@ export class KeyboardManager {
             this.boundHandler
         );
         this.isInitialized = true;
-        console.log('KeyboardManager initialized');
     }
 
     destroy() {

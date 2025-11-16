@@ -9,7 +9,7 @@ import { saveTabCache, saveAppStateCache, clearOldCache } from './acceleration.j
 export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
     const tabs = tabManager.getAllTabs();
 
-    console.log(`○ Saving ${tabs.length} tabs...`);
+    console.log(`Saving ${tabs.length} tabs on close`);
 
     // Save HTML cache of all loaded tabs
     const cachePromises = tabs
@@ -21,14 +21,14 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
                 const html = await tab.view.webContents.executeJavaScript(
                     'document.documentElement.outerHTML'
                 );
-                
+
                 return saveTabCache(tab.tabId, html);
             } catch (error) {
                 console.error(
                     `Failed to cache tab ${tab.tabId}:`,
                     error
                 );
-        
+
                 return false;
             }
         });
@@ -38,7 +38,7 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
     // Prepare tabs data
     const tabsWithLoadState = tabs.map(tab => ({
         ...tab,
-        id: tab.tabId,
+        id: tab.tabId || `tab_${Date.now()}_${Math.random()}`,
         isPreloaded: tab.hasLoaded === true,
         content: tab.hasLoaded ? tab.content : null
     }));
@@ -54,12 +54,14 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
         savedTabs: tabsWithLoadState,
         timestamp: Date.now()
     });
+
     // Delete old cache
     await clearOldCache(tabs.map(t => t.tabId));
-    // Notify manual save
-    ipcManager.notifyManualSave();
 
-    console.log('All data saved successfully');
+    // Notify manual save
+    // ipcManager.notifyManualSave();
+
+    console.log('✓ All data saved on close');
 };
 
 export const loadSavedTabs = async (cachedAppState, tabManager) => {

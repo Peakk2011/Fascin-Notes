@@ -11,12 +11,12 @@ export class TabValidator {
         const screenWidth = window.innerWidth;
         const isSmallScreen = screenWidth <= this.rules.smallScreenWidth;
 
-        console.log('Validation Check:', {
-            screenWidth,
-            isSmallScreen,
-            currentTabCount,
-            maxAllowed: this.rules.maxTabsSmallScreen
-        });
+        // console.log('Validation Check:', {
+        //     screenWidth,
+        //     isSmallScreen,
+        //     currentTabCount,
+        //     maxAllowed: this.rules.maxTabsSmallScreen
+        // });
 
         if (isSmallScreen && currentTabCount >= this.rules.maxTabsSmallScreen) {
             // console.warn('Cannot create tab: limit reached');
