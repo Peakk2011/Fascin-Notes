@@ -1,4 +1,4 @@
-// This file is part of Fascin-Notes
+// This file is part of Fascinate-Note
 // Use for index.html renderer (frontend)
 
 /*
