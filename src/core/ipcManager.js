@@ -30,9 +30,10 @@ export class IpcManager {
      */
     init() {
         this.setupOSHandler();
-        this.setupTabHandlers();
         this.setupStorageHandlers();
+        this.setupTabHandlers();
         this.setupAppHandlers();
+        console.log('IPC Manager initialized with all handlers');
     }
 
     /**
@@ -137,7 +138,10 @@ export class IpcManager {
 
     // Storage handlers
     setupStorageHandlers() {
+        // console.log('Setting up storage handlers...');
+        
         ipcMain.handle('save-tabs', async () => {
+            console.log('save-tabs handler invoked');
             try {
                 const allTabs = this.tabManager?.getAllTabs?.() || [];
                 const activeTab = this.tabManager?.getActiveTab();
@@ -173,6 +177,7 @@ export class IpcManager {
 
         // Load Tabs Handler
         ipcMain.handle('load-tabs', async () => {
+            console.log('load-tabs handler invoked');
             try {
                 const tabs = await this.tabStorage.loadTabs();
                 return {
@@ -194,6 +199,7 @@ export class IpcManager {
 
         // Clear Tabs Handler
         ipcMain.handle('clear-tabs', async () => {
+            console.log('clear-tabs handler invoked');
             try {
                 const success = await this.tabStorage.clearTabs();
                 return { success };
@@ -211,6 +217,7 @@ export class IpcManager {
 
         // Handler to request path stroage
         ipcMain.handle('get-storage-path', async () => {
+            console.log('get-storage-path handler invoked');
             try {
                 const path = await this.tabStorage.getStoragePath();
                 return {
@@ -224,6 +231,8 @@ export class IpcManager {
                 );
             }
         });
+        
+        console.log('Storage handlers registered: save-tabs, load-tabs, clear-tabs, get-storage-path');
     }
 
     // Save tabs before app quits

@@ -55,8 +55,9 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
         timestamp: Date.now()
     });
 
-    // Delete old cache
-    await clearOldCache(tabs.map(t => t.tabId));
+    // Delete old cache files that are no longer needed
+    const activeTabIds = tabs.map(t => t.tabId).filter(id => id);
+    await clearOldCache(activeTabIds);
 
     // Notify manual save
     // ipcManager.notifyManualSave();

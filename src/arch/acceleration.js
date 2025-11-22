@@ -75,8 +75,16 @@ export const loadTabCache = async (tabId) => {
 };
 
 // Delete cache that not use anymore
-export const clearOldCache = async () => {
+export const clearOldCache = async (activeTabIds = []) => {
     try {
+        // Check if cache directory exists
+        try {
+            await fs.access(CACHE_DIR);
+        } catch (accessError) {
+            // Directory doesn't exist, nothing to clean
+            return;
+        }
+
         const files = await fs.readdir(CACHE_DIR);
         const validIds = new Set(
             activeTabIds.map(
@@ -93,9 +101,8 @@ export const clearOldCache = async () => {
             }
         }
 
-
         if (deletedCount > 0) {
-            console.log(`Removed ${deletedCount}`);
+            console.log(`Removed ${deletedCount} old cache files`);
         }
     } catch (error) {
         console.error(
