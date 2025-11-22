@@ -74,7 +74,12 @@ export const noteFeatures = async (
                 console.error('Error setting up Electron API:', error);
             }
         } else {
-            await loadTabData('default-tab');
+            // Defer initial tab load for browser fallback
+            queueMicrotask(() => {
+                loadTabData('default-tab').catch(error => {
+                    console.error('Error loading default tab:', error);
+                });
+            });
         }
 
         // Before unload handler

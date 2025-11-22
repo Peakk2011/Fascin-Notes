@@ -39,11 +39,16 @@ export const createWindow = async () => {
     const tabChangeListener = setupTabChangeListener(mainWindow, tabManager, ipcManager);
     console.log(`Shortcuts registered: ${Date.now() - startTime}ms`);
 
-    // 4. Load interface and cache in parallel
-    const [_, cachedAppState] = await Promise.all([
-        loadInterface(mainWindow),
-        loadAppStateCache()
-    ]);
+    // 4. Load interface in background or just load cache
+    const interfaceStart = Date.now();
+    const cachePromise = loadAppStateCache();
+    
+    loadInterface(mainWindow).catch(err => {
+        console.error('Failed to load interface:', err);
+    });
+    
+    const cachedAppState = await cachePromise;
+    console.log(`Cache loaded in background: ${Date.now() - interfaceStart}ms`);
 
     if (cachedAppState) {
         console.log(`Cache hit: ${Date.now() - startTime}ms`);

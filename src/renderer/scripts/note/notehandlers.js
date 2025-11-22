@@ -192,6 +192,17 @@ export const createTriggerAutoSave = (setStatus, saveTabData) => {
     };
 };
 
+// Helper to create a debounced input handler.
+const debouncedInputHandler = (triggerAutoSave) => {
+    let debounceTimer = null;
+    return (e) => {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            triggerAutoSave();
+        }, 10);
+    };
+};
+
 /**
  * Sets up all necessary event listeners for the note editor.
  * This includes input handling for auto-save and keyboard/mouse shortcuts for zooming.
@@ -208,7 +219,7 @@ export const setupEventListeners = (
     zoomOut,
     resetZoom
 ) => {
-    const inputHandler = triggerAutoSave;
+    const inputHandler = debouncedInputHandler(triggerAutoSave);
     els.textarea.addEventListener(
         'input', inputHandler
     );

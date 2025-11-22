@@ -145,18 +145,6 @@ export const syncStorageData = async (ipcManager, tabManager, cachedAppState, st
     }, delayMs);
 };
 
-// Initialize DevTools (development only)
-export const initDevTools = (mainWindow, startTime, delayMs = 2000) => {
-    if (import.meta.env?.PROD) {
-        return;
-    }
-
-    setTimeout(() => {
-        mainWindow.webContents.openDevTools({ mode: 'detach' });
-        // console.log(`DevTools opened: ${Date.now() - startTime}ms`);
-    }, delayMs);
-};
-
 // Perform initial sync
 export const performInitialSync = (ipcManager, startTime, delayMs = 1500) => {
     setTimeout(() => {
@@ -183,8 +171,6 @@ export const initPostLoad = async (mainWindow, tabManager, ipcManager, cachedApp
     preWarmInactiveTabs(tabManager, activeTab);
     // Sync storage data (background)
     syncStorageData(ipcManager, tabManager, cachedAppState, startTime);
-    // Init DevTools (dev only, low priority)
-    initDevTools(mainWindow, startTime);
     // Initial sync (background)
     performInitialSync(ipcManager, startTime);
 };

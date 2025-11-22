@@ -1,4 +1,5 @@
 import { getCachedEncodedHTML, getCachedTabbarPath } from '../preloadAssets.js';
+import { safeLog } from '../../utils/safeLogger.js';
 
 /**
  * Loads the main interface HTML into the window
@@ -8,13 +9,17 @@ import { getCachedEncodedHTML, getCachedTabbarPath } from '../preloadAssets.js';
  * @returns {Promise<void>}
  */
 export const loadInterface = async (mainWindow) => {
+    const startTime = Date.now();
     const encodedHtml = getCachedEncodedHTML();
     const tabbarPath = getCachedTabbarPath();
 
-    return mainWindow.loadURL(
+    const loadPromise = mainWindow.loadURL(
         `data:text/html;charset=UTF-8,${encodedHtml}`,
         {
             baseURLForDataURL: `file://${tabbarPath}`
         }
     );
+
+    safeLog(`loadInterface() called: ${Date.now() - startTime}ms`);
+    return loadPromise;
 };

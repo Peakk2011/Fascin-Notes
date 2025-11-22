@@ -40,9 +40,13 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
     }
 
     // Handle zoom events
+    let wheelTimeout = null;
     const wheelHandler = (e) => {
         if (e.ctrlKey || e.metaKey) {
-            requestAnimationFrame(syncFontSize);
+            if (wheelTimeout) clearTimeout(wheelTimeout);
+            wheelTimeout = setTimeout(() => {
+                syncFontSize();
+            }, 50);
         }
     };
 
@@ -81,12 +85,17 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
     );
 
     // Listen for font-size changes
-    const fontObserver = new MutationObserver(syncFontSize);
+    let fontObserver = null;
     
-    fontObserver.observe(editor, {
-        attributes: true,
-        attributeFilter: ['style']
-    });
+    const initFontObserver = () => {
+        if (!fontObserver) {
+            fontObserver = new MutationObserver(syncFontSize);
+            fontObserver.observe(editor, {
+                attributes: true,
+                attributeFilter: ['style']
+            });
+        }
+    };
 
     // Setup format buttons
     const boundFormatButtons = [];
@@ -129,12 +138,17 @@ export const initRichEditor = ({ editorId, placeholderText, formatButtons = {} }
 
     // Initialize
     updateVisibility();
-    syncFontSize();
+    requestAnimationFrame(() => {
+        syncFontSize();
+        initFontObserver();
+    });
 
     // Return public API
     return {
         cleanup() {
-            fontObserver.disconnect();
+            if (fontObserver) {
+                fontObserver.disconnect();
+            }
             editor.removeEventListener(
                 'wheel',
                 wheelHandler

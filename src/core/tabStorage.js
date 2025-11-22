@@ -1,6 +1,7 @@
 import { app } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
+import { safeLog, safeError } from '../utils/safeLogger.js';
 
 /**
  * Handles the persistent storage of tab data to the file system.
@@ -39,7 +40,7 @@ export class TabStorage {
                 }
             )
         } catch (error) {
-            console.error(
+            safeError(
                 'Error creating storage directory',
                 error
             );
@@ -58,7 +59,7 @@ export class TabStorage {
             const tabsToSave = Array.isArray(tabs) ? tabs : [];
 
             if (tabsToSave.length === 0) {
-                console.warn(
+                safeLog(
                     'Attempted to save an empty array of tabs. Aborting to prevent data loss.'
                 );
                 return false;
@@ -66,10 +67,9 @@ export class TabStorage {
 
             await this.ensureStorageDir();
 
-            console.log('saveTabs called with:', {
+            safeLog('saveTabs called with:', {
                 tabCount: tabsToSave.length,
-                tabs: tabsToSave.map(t => t.title),
-                // callStack: new Error().stack
+                tabs: tabsToSave.map(t => t.title)
             });
 
             const tabsDataPromises = tabsToSave.map(async (tab) => {
@@ -84,7 +84,7 @@ export class TabStorage {
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
                     } catch (e) {
-                        console.warn(`Could not get content for "${tab.title}":`, e.message);
+                        safeLog(`Could not get content for "${tab.title}":`, e.message);
                     }
                 }
 
@@ -115,12 +115,12 @@ export class TabStorage {
             );
 
             // Check that is real save 
-            console.log(
+            safeLog(
                 `Saved ${tabsToSave.length} tabs to ${this.storageFile}`
             );
             return true;
         } catch (error) {
-            console.error(
+            safeError(
                 'Error saving tabs:',
                 error
             );
@@ -141,13 +141,13 @@ export class TabStorage {
             );
             const data = JSON.parse(fileContent);
 
-            console.log(`Loaded ${data.tabs.length} tabs from storage`);
+            safeLog(`Loaded ${data.tabs.length} tabs from storage`);
             return data.tabs || [];
         } catch (error) {
             if (error.code === 'ENOENT') {
-                console.log('No saved tabs found');
+                safeLog('No saved tabs found');
             } else {
-                console.error(
+                safeError(
                     'Error loading tabs:',
                     error
                 );
@@ -164,13 +164,13 @@ export class TabStorage {
     async clearTabs() {
         try {
             await fs.unlink(this.storageFile);
-            console.log('Cleared saved tabs');
+            safeLog('Cleared saved tabs');
             return true;
         } catch (error) {
             if (error.code === 'ENOENT') {
                 return true;
             }
-            console.error(
+            safeError(
                 'Error clearing tabs:',
                 error
             );

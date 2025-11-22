@@ -1,4 +1,5 @@
 import { promises as fs } from 'fs';
+import { safeLog } from '../utils/safeLogger.js';
 import { resolvePath } from '../utils/paths.js';
 
 let cachedTabbarHtml = null;
@@ -17,7 +18,7 @@ export const preloadAssets = async () => {
             'utf-8'
         );
         cachedEncodedHtml = encodeURIComponent(cachedTabbarHtml);
-        console.log(`Assets preloaded in ${Date.now() - startTime}ms`);
+        safeLog(`Assets preloaded in ${Date.now() - startTime}ms`);
     }
 };
 

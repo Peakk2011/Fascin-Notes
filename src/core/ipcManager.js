@@ -1,8 +1,7 @@
 import { ipcMain, app } from 'electron';
 import { OS } from '../config/osConfig.js';
-import fs from 'fs/promises';
-import path from 'path';
 import { TabStorage } from './tabStorage.js';
+import { safeLog, safeError } from '../utils/safeLogger.js';
 
 /**
  * Helper to register ipcMain.on
@@ -33,7 +32,7 @@ export class IpcManager {
         this.setupStorageHandlers();
         this.setupTabHandlers();
         this.setupAppHandlers();
-        console.log('IPC Manager initialized with all handlers');
+        safeLog('IPC Manager initialized with all handlers');
     }
 
     /**
@@ -41,7 +40,7 @@ export class IpcManager {
      */
     setupOSHandler() {
         ipcMain.handle('get-os', () => {
-            console.log('get-os requested, returning:', OS);
+            safeLog('get-os requested, returning:', OS);
             /*
                 Example you will got input like this on your OS 
                 "get-os requested, returning: darwin"
@@ -56,7 +55,7 @@ export class IpcManager {
      */
     setupTabHandlers() {
         if (!this.tabManager) {
-            console.warn(
+            safeLog(
                 'TabManager not ready for IPC handlers'
             );
             return;
@@ -72,7 +71,7 @@ export class IpcManager {
                 this.tabManager.setActiveTab(tab);
                 // this.syncTabsToAllWindows();
             } else {
-                console.error(
+                safeError(
                     'Invalid tab index for switch:',
                     index
                 );
@@ -81,7 +80,7 @@ export class IpcManager {
 
         this.registerHandler('close-tab', (event, index) => {
             if (!this.tabManager?.closeTabByIndex) {
-                console.error(
+                safeError(
                     'TabManager not ready or missing closeTabByIndex method'
                 );
                 return;
@@ -91,7 +90,7 @@ export class IpcManager {
             const tabCountBefore = this.tabManager.getTabCount();
 
             if (tabCountBefore <= 1) {
-                console.log('Last tab closed - quitting app');
+                safeLog('Last tab closed - quitting app');
                 app.quit();
             } else {
                 // Sync tabs to renderer after closing
@@ -105,7 +104,7 @@ export class IpcManager {
         });
 
         this.registerHandler('close-app', (event) => {
-            console.log('Close app requested');
+            safeLog('Close app requested');
             app.quit();
         });
 
@@ -120,28 +119,26 @@ export class IpcManager {
      */
     performInitialSync() {
         if (this.hasInitialSync) {
-            console.log('Initial sync already performed');
+            safeLog('Initial sync already performed');
             return
         }
 
         if (!this.tabManager) {
-            console.warn(
+            safeLog(
                 'TabManager not ready for initial sync'
             );
             return
         }
 
-        console.log('Performing initial tabs sync');
+        safeLog('Performing initial tabs sync');
         this.syncTabsToAllWindows();
         this.hasInitialSync = true;
     }
 
     // Storage handlers
     setupStorageHandlers() {
-        // console.log('Setting up storage handlers...');
-        
+
         ipcMain.handle('save-tabs', async () => {
-            console.log('save-tabs handler invoked');
             try {
                 const allTabs = this.tabManager?.getAllTabs?.() || [];
                 const activeTab = this.tabManager?.getActiveTab();
@@ -164,7 +161,7 @@ export class IpcManager {
                     success
                 };
             } catch (error) {
-                console.error(
+                safeError(
                     'Error saving tabs via IPC:',
                     error
                 );
@@ -177,7 +174,6 @@ export class IpcManager {
 
         // Load Tabs Handler
         ipcMain.handle('load-tabs', async () => {
-            console.log('load-tabs handler invoked');
             try {
                 const tabs = await this.tabStorage.loadTabs();
                 return {
@@ -185,7 +181,7 @@ export class IpcManager {
                     tabs
                 };
             } catch (error) {
-                console.error(
+                safeError(
                     'Error loading tabs via IPC:',
                     error
                 );
@@ -199,12 +195,11 @@ export class IpcManager {
 
         // Clear Tabs Handler
         ipcMain.handle('clear-tabs', async () => {
-            console.log('clear-tabs handler invoked');
             try {
                 const success = await this.tabStorage.clearTabs();
                 return { success };
             } catch (error) {
-                console.error(
+                safeError(
                     'Error clearing tabs via IPC:',
                     error
                 );
@@ -217,7 +212,6 @@ export class IpcManager {
 
         // Handler to request path stroage
         ipcMain.handle('get-storage-path', async () => {
-            console.log('get-storage-path handler invoked');
             try {
                 const path = await this.tabStorage.getStoragePath();
                 return {
@@ -225,14 +219,14 @@ export class IpcManager {
                     path
                 };
             } catch (error) {
-                console.error(
+                safeError(
                     'Error getting storage path via IPC:',
                     error
                 );
             }
         });
-        
-        console.log('Storage handlers registered: save-tabs, load-tabs, clear-tabs, get-storage-path');
+
+        safeLog('Storage handlers registered: save-tabs, load-tabs, clear-tabs, get-storage-path');
     }
 
     // Save tabs before app quits
@@ -260,9 +254,9 @@ export class IpcManager {
                 }));
 
                 await this.tabStorage.saveTabs(tabsToSave, activeTab);
-                console.log('Saved tabs before quit');
+                safeLog('Saved tabs before quit');
             } catch (error) {
-                console.error('Error saving tabs before quit:', error);
+                safeError('Error saving tabs before quit:', error);
             } finally {
                 app.exit(0);
             }
@@ -304,7 +298,7 @@ export class IpcManager {
             case 'close-tab':
                 // Check if last tab
                 if (tabs.length === 1) {
-                    console.log('Last tab - closing app via shortcut');
+                    safeLog('Last tab - closing app via shortcut');
                     app.quit();
                 } else if (tabs.length > 1) {
                     // Reuse the existing 'close-tab' handler
@@ -381,7 +375,7 @@ export class IpcManager {
 
         const activeTabsCount = tabsData.filter(tab => tab.isActive).length;
         if (activeTabsCount > 1) {
-            console.warn(
+            safeLog(
                 `Multiple active tabs detected: ${activeTabsCount}`
             );
             // Kill all inactive except the real active one
@@ -395,7 +389,7 @@ export class IpcManager {
             activeTabIndex: activeIndex >= 0 ? activeIndex : 0
         });
 
-        console.log(
+        safeLog(
             `Synced ${tabs.length} tabs to renderer`
         );
     }
@@ -434,18 +428,18 @@ export class IpcManager {
      */
     async autoSaveTabs() {
         if (this.manualSaveCompleted) {
-            console.log('Skipping auto-save after manual save on close.');
+            safeLog('Skipping auto-save after manual save on close.');
             return;
         }
 
         if (this.isQuitting) {
-            console.log('Skipping auto-save during quit process.');
+            safeLog('Skipping auto-save during quit process.');
             return;
         }
 
         try {
             if (!this.tabManager || !this.tabManager.getAllTabs) {
-                console.warn('TabManager not ready for auto-saving');
+                safeLog('TabManager not ready for auto-saving');
                 return;
             }
 
@@ -466,10 +460,10 @@ export class IpcManager {
                     tabsToSave,
                     activeTab
                 );
-                console.log(`Auto-saved ${allTabs.length} tabs`);
+                safeLog(`Auto-saved ${allTabs.length} tabs`);
             }
         } catch (error) {
-            console.error(
+            safeError(
                 'Error auto-saving tabs:',
                 error
             );
@@ -505,14 +499,13 @@ export class IpcManager {
         );
 
         ipcMain.on(channel, (event, ...args) => {
-            // console.log(`IPC "${channel}" called with args:`, args);
             try {
                 handler(
                     event,
                     ...args
                 );
             } catch (err) {
-                console.error(
+                safeError(
                     `Error in handler for "${channel}":`, err
                 );
             }

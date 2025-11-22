@@ -9,11 +9,29 @@ import { initRichEditor } from './rich.js';
 import '../../api/cursor-behavior.js';
 
 export const Page = {
+    // Cache instances
+    _modelFindCache: null,
+    _configCache: null,
+
+    async _getConfig() {
+        if (!this._configCache) {
+            this._configCache = await fetchJSON(
+                'renderer/content/pageConfig.json'
+            );
+        }
+        return this._configCache;
+    },
+
+    async _getModelFind() {
+        if (!this._modelFindCache) {
+            this._modelFindCache = await createModelFind();
+        }
+        return this._modelFindCache;
+    },
+
     async markups() {
-        const config = await fetchJSON(
-            'renderer/content/pageConfig.json'
-        );
-        const modelFind = await createModelFind();
+        const config = await this._getConfig();
+        const modelFind = await this._getModelFind();
 
         return `
             <div class="${config.statusContainerClass}">
@@ -59,24 +77,14 @@ export const Page = {
 
     async init() {
         try {
-            const config = await fetchJSON('renderer/content/pageConfig.json');
-            const noteAPI = await noteFeatures();
+            // Load in parallel (config already cached from markups())
+            const [config, noteAPI] = await Promise.all([
+                this._getConfig(),
+                noteFeatures()
+            ]);
 
             if (!noteAPI) {
                 throw new Error('Failed to initialize note features');
-            }
-
-            // Reset zoom button
-            const resetBtn = document.getElementById(config.resetZoomButtonId);
-
-            if (resetBtn) {
-                resetBtn.addEventListener('click', async () => {
-                    try {
-                        await noteAPI.resetZoom();
-                    } catch (error) {
-                        console.error('Error resetting zoom:', error);
-                    }
-                });
             }
 
             // Initialize rich editor component (placeholder overlay + format buttons)
@@ -91,18 +99,32 @@ export const Page = {
 
             window.rich = rich;
 
-            // Export HTML
-            const exportBtn = document.getElementById(config.exportHtmlButtonId);
-            
-            if (exportBtn && rich) {
-                exportBtn.addEventListener('click', () => {
-                    const filename = `note-${new Date().toISOString().slice(0, 10)}.html`;
-                    rich.downloadHTML(filename);
-                });
-            }
+            // Setup event listeners
+            requestAnimationFrame(() => {
+                // Reset zoom button
+                const resetBtn = document.getElementById(config.resetZoomButtonId);
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', async () => {
+                        try {
+                            await noteAPI.resetZoom();
+                        } catch (error) {
+                            console.error('Error resetting zoom:', error);
+                        }
+                    });
+                }
 
-            // Initialize components
-            const modelFind = await createModelFind();
+                // Export HTML button
+                const exportBtn = document.getElementById(config.exportHtmlButtonId);
+                if (exportBtn && rich) {
+                    exportBtn.addEventListener('click', () => {
+                        const filename = `note-${new Date().toISOString().slice(0, 10)}.html`;
+                        rich.downloadHTML(filename);
+                    });
+                }
+            });
+
+            // Initialize model find component (use cached instance)
+            const modelFind = await this._getModelFind();
             modelFind.init({ pageConfig: config, noteAPI });
 
             return noteAPI;
