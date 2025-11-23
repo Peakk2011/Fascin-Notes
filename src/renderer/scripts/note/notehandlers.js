@@ -203,6 +203,51 @@ const debouncedInputHandler = (triggerAutoSave) => {
     };
 };
 
+export const manualSave = async () => {
+    try {
+        if (!window.electronAPI || !window.electronAPI.saveTabs) {
+            console.warn('electronAPI.saveTabs not available');
+            return false;
+        }
+
+        const result = await window.electronAPI.saveTabs();
+
+        if (result.success) {
+            console.log('✅ Manual save successful');
+
+            // แสดง indicator ถ้ามี
+            const indicator = document.getElementById('saveIndicator');
+            const statusText = document.getElementById('statusText');
+            if (indicator && statusText) {
+                indicator.classList.add('active');
+                statusText.textContent = 'Saved';
+                setTimeout(() => {
+                    indicator.classList.remove('active');
+                }, 1500);
+            }
+
+            return true;
+        } else {
+            console.error('Manual save failed:', result.error);
+            return false;
+        }
+    } catch (error) {
+        console.error('Error in manual save:', error);
+        return false;
+    }
+};
+
+if (typeof window !== 'undefined') {
+    document.addEventListener('keydown', (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+            e.preventDefault();
+            manualSave().catch(err => {
+                console.error('Manual save error:', err);
+            });
+        }
+    });
+}
+
 /**
  * Sets up all necessary event listeners for the note editor.
  * This includes input handling for auto-save and keyboard/mouse shortcuts for zooming.
@@ -228,7 +273,7 @@ export const setupEventListeners = (
         els.textarea,
         'input',
         inputHandler
-    ); 
+    );
 
     const keydownHandler = async (e) => {
         if (e.ctrlKey || e.metaKey) {

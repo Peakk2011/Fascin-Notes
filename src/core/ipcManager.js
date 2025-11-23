@@ -107,10 +107,6 @@ export class IpcManager {
             safeLog('Close app requested');
             app.quit();
         });
-
-        this.registerHandler('keyboard-shortcut', (event, action) => {
-            this.handleKeyboardShortcut(action);
-        });
     }
 
     /**
@@ -148,9 +144,9 @@ export class IpcManager {
                         const content = await tab.view.webContents.executeJavaScript(
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
-                        return { title: tab.title, content };
+                        return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content };
                     }
-                    return { title: tab.title, content: tab.contentToLoad || '' };
+                    return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content: tab.contentToLoad || '' };
                 }));
 
                 const success = await this.tabStorage.saveTabs(
@@ -248,9 +244,9 @@ export class IpcManager {
                         const content = await tab.view.webContents.executeJavaScript(
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
-                        return { title: tab.title, content };
+                        return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content };
                     }
-                    return { title: tab.title, content: tab.contentToLoad || '' };
+                    return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content: tab.contentToLoad || '' };
                 }));
 
                 await this.tabStorage.saveTabs(tabsToSave, activeTab);
@@ -366,6 +362,7 @@ export class IpcManager {
         const activeTab = this.tabManager.getActiveTab?.();
 
         const tabsData = tabs.map(tab => ({
+            id: tab.tabId || null,
             title: tab.title || 'Untitled',
             url: tab.url || '',
             isActive: tab === activeTab
@@ -386,7 +383,9 @@ export class IpcManager {
 
         webContents.send('tabs-sync', {
             tabs: tabsData,
-            activeTabIndex: activeIndex >= 0 ? activeIndex : 0
+            // Provide both names to be compatible with renderer variations
+            activeTabIndex: activeIndex >= 0 ? activeIndex : 0,
+            activeIndex: activeIndex >= 0 ? activeIndex : 0
         });
 
         safeLog(
@@ -452,9 +451,9 @@ export class IpcManager {
                         const content = await tab.view.webContents.executeJavaScript(
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
-                        return { title: tab.title, content };
+                        return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content };
                     }
-                    return { title: tab.title, content: tab.contentToLoad || '' };
+                    return { id: tab.tabId || `tab_${Date.now()}_${Math.random()}`, title: tab.title, content: tab.contentToLoad || '' };
                 }));
                 const success = await this.tabStorage.saveTabs(
                     tabsToSave,

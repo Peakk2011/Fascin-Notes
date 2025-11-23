@@ -11,58 +11,52 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
 
     console.log(`Saving ${tabs.length} tabs on close`);
 
-    // Save HTML cache of all loaded tabs
-    const cachePromises = tabs
-        .filter(
-            tab => tab.hasLoaded && tab.view?.webContents
-        )
-        .map(async (tab) => {
-            try {
-                const html = await tab.view.webContents.executeJavaScript(
-                    'document.documentElement.outerHTML'
-                );
+    try {
+        // Use ipcManager.autoSaveTabs() to properly extract content from textarea
+        await ipcManager.autoSaveTabs();
 
-                return saveTabCache(tab.tabId, html);
-            } catch (error) {
-                console.error(
-                    `Failed to cache tab ${tab.tabId}:`,
-                    error
-                );
+        // Save HTML cache of all loaded tabs
+        const cachePromises = tabs
+            .filter(
+                tab => tab.hasLoaded && tab.view?.webContents
+            )
+            .map(async (tab) => {
+                try {
+                    const html = await tab.view.webContents.executeJavaScript(
+                        'document.documentElement.outerHTML'
+                    );
 
-                return false;
-            }
+                    return saveTabCache(tab.tabId, html);
+                } catch (error) {
+                    console.error(
+                        `Failed to cache tab ${tab.tabId}:`,
+                        error
+                    );
+
+                    return false;
+                }
+            });
+
+        await Promise.all(cachePromises);
+
+        // Get current tabs with content from storage after auto save
+        const savedTabs = await tabStorage.loadTabs();
+        
+        // Save app state cache with proper content
+        await saveAppStateCache({
+            savedTabs: savedTabs,
+            timestamp: Date.now()
         });
 
-    await Promise.all(cachePromises);
+        // Delete old cache files that are no longer needed
+        const activeTabIds = tabs.map(t => t.tabId).filter(id => id);
+        await clearOldCache(activeTabIds);
 
-    // Prepare tabs data
-    const tabsWithLoadState = tabs.map(tab => ({
-        ...tab,
-        id: tab.tabId || `tab_${Date.now()}_${Math.random()}`,
-        isPreloaded: tab.hasLoaded === true,
-        content: tab.hasLoaded ? tab.content : null
-    }));
-
-    // Save tabs data
-    await tabStorage.saveTabs(
-        tabsWithLoadState,
-        tabManager.getActiveTab()
-    );
-
-    // Save app state cache
-    await saveAppStateCache({
-        savedTabs: tabsWithLoadState,
-        timestamp: Date.now()
-    });
-
-    // Delete old cache files that are no longer needed
-    const activeTabIds = tabs.map(t => t.tabId).filter(id => id);
-    await clearOldCache(activeTabIds);
-
-    // Notify manual save
-    // ipcManager.notifyManualSave();
-
-    console.log('✓ All data saved on close');
+        console.log('✓ All data saved on close');
+    } catch (error) {
+        console.error('Error in saveTabsOnClose:', error);
+        throw error;
+    }
 };
 
 export const loadSavedTabs = async (cachedAppState, tabManager) => {
@@ -78,10 +72,11 @@ export const loadSavedTabs = async (cachedAppState, tabManager) => {
 
     // Tab structures
     cachedAppState.savedTabs.forEach((tabInfo) => {
+        const contentToLoad = tabInfo.content || null;
         const newTab = tabManager.createTab(
             tabInfo.title,
             false,
-            null
+            contentToLoad
         );
 
         newTab.tabId = tabInfo.id;

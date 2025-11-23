@@ -16,6 +16,7 @@ export class TabManager {
     constructor(mainWindow) {
         this.mainWindow = mainWindow;
         this.tabs = [];
+        this._nextTabId = 1;
         this.activeTab = null;
         this.isDestroyed = false;
         this.listenersAttached = false;
@@ -87,6 +88,7 @@ export class TabManager {
         });
 
         const tab = {
+            tabId: `tab_${Date.now()}_${this._nextTabId++}`,
             title,
             view,
             loaded: false,

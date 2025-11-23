@@ -89,8 +89,11 @@
     font-weight: 550;
     line-height: 1.6;
     padding-left: 0.5rem;
-    border-left: solid 3px var(--theme-accent);
+    padding-right: 0.5rem;
+    border-left: solid 2px var(--theme-accent);
     color: var(--theme-text-accent);
+    background-color: var(--theme-accent-blockquote);
+    display: inline-block;
 }
 
 .editable-div ul li {

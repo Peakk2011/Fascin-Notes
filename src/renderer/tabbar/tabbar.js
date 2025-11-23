@@ -11,7 +11,24 @@ export const tabbar = () => {
     new DragManager(tabManager).init(tabbar);
     new KeyboardManager().init();
 
-    tabManager.createTab('Welcome');
+    try {
+        if (window.electronAPI && typeof window.electronAPI.requestTabsSync === 'function') {
+            window.electronAPI.requestTabsSync();
+        }
+    } catch (e) {
+        // ignore
+    }
+
+    setTimeout(() => {
+        try {
+            if (tabManager.getTabCount() === 0) {
+                tabManager.createTab('Welcome');
+            }
+        } catch (e) {
+            console.error('Error creating fallback Welcome tab:', e);
+        }
+    }, 250);
+
     return tabManager;
 };
 

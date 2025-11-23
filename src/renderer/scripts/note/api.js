@@ -82,6 +82,32 @@ export const noteFeatures = async (
             });
         }
 
+        // Listen for tab content provided by the tab manager (dispatched as CustomEvent)
+        const tabContentHandler = async (e) => {
+            try {
+                const detail = e && e.detail ? e.detail : null;
+                if (!detail) return;
+                const tabId = detail.tabId;
+                const content = detail.content || '';
+
+                // Store into in-memory tabsData keyed by tabId
+                tabsData[tabId] = {
+                    text: content,
+                    fontSize: noteFeaturesConfig.defaultFontSize
+                };
+
+                // If this is the currently active tab, load it into the textarea
+                if (tabId === activeTabId) {
+                    await loadTabData(tabId);
+                }
+            } catch (err) {
+                console.error('Error handling tab-content-ready event:', err);
+            }
+        };
+
+        window.addEventListener('tab-content-ready', tabContentHandler);
+        addEventListenerTracker(window, 'tab-content-ready', tabContentHandler);
+
         // Before unload handler
         const beforeUnloadHandler = async () => {
             try {

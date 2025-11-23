@@ -55,7 +55,7 @@
 
 :root {
     /* Theme Colors */
-    --theme-bg: hsl(0, 0%, 8.5%);
+    --theme-bg: hsl(0, 0%, 8%);
     --theme-fg: #ffffff;
     --theme-accent: hsl(120, 7%, 85%);
 
@@ -63,6 +63,7 @@
     --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
 
     --theme-text-accent: hsl(0, 20%, 90%);
+    --theme-accent-blockquote: hsl(120, 5%, 15%);
     --hover-color: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
 
@@ -92,7 +93,7 @@
 /* (default) */
 @media (prefers-color-scheme: dark) {
     :root {
-        --theme-bg: hsl(0, 0%, 8.5%);
+        --theme-bg: hsl(0, 0%, 8%);
         --theme-fg: #ffffff;
         --theme-accent: hsl(120, 7%, 85%);
         --hover-color: #2a2a2a;
@@ -137,7 +138,7 @@ html {
 body {
     color: var(--theme-fg);
     line-height: var(--line-height);
-    background-color: rgba(0, 0, 0, 0.048);
+    background-color: rgba(0, 0, 0, 0.055);
 }
 
 @media (prefers-reduced-motion: reduce) {

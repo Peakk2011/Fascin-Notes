@@ -1,5 +1,6 @@
 import { getBlockElement, getTextBeforeCursor } from './nodeElement.js';
 import { handleEnterInBlockquote } from './markdown/handleEnterInBlockquote.js';
+import { handleEnterInHeading } from './markdown/handleEnterInHeading.js';
 import { processMarkdownInLine } from './markdown/commands.js';
 
 /**
@@ -18,13 +19,18 @@ export const handleMarkdown = (e, editor) => {
 
     // Handle Enter key in blockquote
     if (e.key === 'Enter') {
+        // Handle Enter in an empty heading to convert it to a paragraph
+        if (handleEnterInHeading(e, editor)) {
+            return;
+        }
+
         const handled = handleEnterInBlockquote(
             e,
             editor,
             node,
             selection
         );
-        
+
         if (handled !== undefined) {
             return handled;
         }
@@ -40,7 +46,7 @@ export const handleMarkdown = (e, editor) => {
     if (!blockElement || blockElement === editor) {
         if (editor.children.length === 0 ||
             (editor.children.length === 1 && editor.firstElementChild?.tagName === 'BR')) {
-            
+
             const text = editor.textContent || '';
             const cursorPos = range.startOffset;
             let beforeCursor = '';

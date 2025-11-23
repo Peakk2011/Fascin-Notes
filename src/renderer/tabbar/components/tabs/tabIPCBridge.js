@@ -40,11 +40,63 @@ export class TabIPCBridge {
         if (!this.isAvailable) return;
 
         try {
-            window.electronAPI.onTabsUpdated((data) => {
-                if (this.callbacks.onTabsUpdated) {
-                    this.callbacks.onTabsUpdated(data);
-                }
-            });
+            // Support legacy 'tabs-updated' channel and newer 'tabs-sync' channel.
+            // Store unsubscribe functions so we can remove them later.
+            if (typeof window.electronAPI.onTabsUpdated === 'function') {
+                this.unsubscribeUpdated = window.electronAPI.onTabsUpdated((data) => {
+                    if (this.callbacks.onTabsUpdated) {
+                        this.callbacks.onTabsUpdated(this._normalizeTabsPayload(data));
+                    }
+                });
+            }
+
+            if (typeof window.electronAPI.onTabsSync === 'function') {
+                this.unsubscribeSync = window.electronAPI.onTabsSync(async (data) => {
+                    try {
+                        // Try to merge any saved content from storage if available.
+                        if (window.electronAPI && typeof window.electronAPI.loadTabs === 'function') {
+                            try {
+                                const res = await window.electronAPI.loadTabs();
+                                if (res && res.success && Array.isArray(res.tabs)) {
+                                        // Merge saved tabs by id when possible for stable mapping.
+                                        const saved = res.tabs;
+                                        if (Array.isArray(data.tabs) && Array.isArray(saved)) {
+                                            // Build lookup by id from saved
+                                            const savedById = {};
+                                            for (let s of saved) {
+                                                if (s && (s.id || s.tabId)) {
+                                                    savedById[s.id || s.tabId] = s;
+                                                }
+                                            }
+
+                                            for (let i = 0; i < data.tabs.length; i++) {
+                                                const t = data.tabs[i] || {};
+                                                const id = t.id || t.tabId || null;
+                                                if (id && savedById[id]) {
+                                                    data.tabs[i].content = savedById[id].content || data.tabs[i].content || '';
+                                                } else if (saved[i]) {
+                                                    // fallback to index-based merge if ids not present
+                                                    data.tabs[i].content = saved[i].content || data.tabs[i].content || '';
+                                                } else {
+                                                    data.tabs[i].content = data.tabs[i].content || '';
+                                                }
+                                            }
+                                        }
+                                }
+                            } catch (e) {
+                                // Ignore content merge failures but still proceed with sync
+                                console.warn('Failed to load saved tabs for content merge:', e && e.message);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error while merging saved tab content:', err);
+                    } finally {
+                        if (this.callbacks.onTabsUpdated) {
+                            this.callbacks.onTabsUpdated(this._normalizeTabsPayload(data));
+                        }
+                    }
+                });
+            }
         } catch (error) {
             console.error('Error setting up IPC listeners:', error);
         }
@@ -57,6 +109,55 @@ export class TabIPCBridge {
      */
     onTabsUpdated(callback) {
         this.callbacks.onTabsUpdated = callback;
+        return () => {
+            this.callbacks.onTabsUpdated = null;
+            // remove any registered listeners via preload if available
+            try {
+                if (typeof this.unsubscribeUpdated === 'function') this.unsubscribeUpdated();
+            } catch (e) {}
+            try {
+                if (typeof this.unsubscribeSync === 'function') this.unsubscribeSync();
+            } catch (e) {}
+        };
+    }
+
+    /**
+     * Normalize incoming payloads from different IPC channels into the
+     * shape expected by the renderer TabManager: { tabs: Array, activeIndex: number }
+     * @private
+     */
+    _normalizeTabsPayload(data) {
+        if (!data || typeof data !== 'object') return { tabs: [], activeIndex: -1 };
+
+        const tabs = Array.isArray(data.tabs) ? data.tabs : [];
+
+        let activeIndex = -1;
+
+        if (typeof data.activeIndex === 'number') {
+            activeIndex = data.activeIndex;
+        } else if (typeof data.activeTabIndex === 'number') {
+            activeIndex = data.activeTabIndex;
+        } else {
+            // try to find a tab marked as active
+            const idx = tabs.findIndex(t => t.isActive || t.active === true || t.is_active === true);
+            activeIndex = idx >= 0 ? idx : -1;
+        }
+
+        return { tabs, activeIndex };
+    }
+
+    /**
+     * Clean up any listeners registered through the preload bridge.
+     */
+    destroy() {
+        try {
+            if (typeof this.unsubscribeUpdated === 'function') this.unsubscribeUpdated();
+        } catch (e) {}
+        try {
+            if (typeof this.unsubscribeSync === 'function') this.unsubscribeSync();
+        } catch (e) {}
+        this.callbacks.onTabsUpdated = null;
+        this.isAvailable = false;
     }
 
     /**

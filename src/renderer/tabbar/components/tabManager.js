@@ -133,10 +133,8 @@ export class TabManager {
             this.switchTab(id);
         }
 
-        // Notify IPC
-        if (this.isInitialSync) {
-            this.ipcBridge.notifyNewTab(sanitizedTitle);
-        }
+        // Always notify main process when creating tabs
+        this.ipcBridge.notifyNewTab(sanitizedTitle);
 
         return id;
     }
@@ -162,6 +160,19 @@ export class TabManager {
             const index = this.tabOrder.indexOf(id);
             if (index !== -1) {
                 this.ipcBridge.notifySwitchTab(index);
+                // Emit content ready event for the newly active tab so note editor can load it
+                try {
+                    const activeTab = this.tabs.get(id);
+                    const content = (activeTab && activeTab.contentToLoad) ? activeTab.contentToLoad : '';
+                    window.dispatchEvent(new CustomEvent('tab-content-ready', {
+                        detail: {
+                            tabId: (activeTab && activeTab.remoteId) ? activeTab.remoteId : id,
+                            content
+                        }
+                    }));
+                } catch (e) {
+                    // ignore
+                }
             }
         } catch (error) {
             console.error(
@@ -351,6 +362,16 @@ export class TabManager {
                         tabData.title
                     );
 
+                    // Attach any preloaded content (merged by IPC bridge) so other
+                    // renderer modules (note editor) can pick it up.
+                    try {
+                        tab.contentToLoad = tabData.content || '';
+                        // store the main-process stable id for mapping
+                        tab.remoteId = tabData.id || null;
+                    } catch (e) {
+                        tab.contentToLoad = '';
+                    }
+
                     tab.onClose = (id) => this.closeTab(id);
                     tab.onClick = (id) => this.switchTab(id);
 
@@ -363,6 +384,19 @@ export class TabManager {
                         id,
                         tab
                     );
+
+                    // Notify other renderer modules that content is available for this tab id
+                    try {
+                        window.dispatchEvent(new CustomEvent('tab-content-ready', {
+                            detail: {
+                                // prefer stable remote id when available
+                                tabId: tab.remoteId || id,
+                                content: tab.contentToLoad || ''
+                            }
+                        }));
+                    } catch (e) {
+                        // ignore
+                    }
 
                     this.tabOrder.push(id);
                 });

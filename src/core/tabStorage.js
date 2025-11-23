@@ -73,26 +73,46 @@ export class TabStorage {
             });
 
             const tabsDataPromises = tabsToSave.map(async (tab) => {
-                let content = '';
+                // Support both full tab objects and pre-serialized objects
+                const id = tab.id || tab.tabId || null;
+                const title = tab.title || '';
+                const url = tab.url || '';
 
-                if (tab.view &&
-                    tab.view.webContents &&
-                    !tab.view.webContents.isDestroyed() &&
-                    !tab.url) {
+                // Determine isActive by comparing ids when possible, otherwise fallback to object identity
+                let isActive = false;
+                try {
+                    const activeId = activeTab ? (activeTab.tabId || activeTab.id || null) : null;
+                    if (activeId && id) {
+                        isActive = activeId === id;
+                    } else {
+                        isActive = tab === activeTab;
+                    }
+                } catch (e) {
+                    isActive = tab === activeTab;
+                }
+
+                // Prefer already provided content on the object; otherwise try to read from BrowserView if present
+                let content = '';
+                if (typeof tab.content === 'string' && tab.content.length >= 0) {
+                    content = tab.content;
+                } else if (tab.view && tab.view.webContents && !tab.view.webContents.isDestroyed() && !tab.url) {
                     try {
                         content = await tab.view.webContents.executeJavaScript(
                             'document.getElementById("autoSaveTextarea")?.value || ""'
                         );
                     } catch (e) {
-                        safeLog(`Could not get content for "${tab.title}":`, e.message);
+                        safeLog(`Could not get content for "${title}":`, e.message);
                     }
+                } else {
+                    content = tab.contentToLoad || '';
                 }
 
                 return {
-                    title: tab.title,
-                    url: tab.url || '',
-                    isActive: tab === activeTab,
-                    content: content,
+                    id,
+                    title,
+                    url,
+                    isActive,
+                    content,
                 };
             });
 
