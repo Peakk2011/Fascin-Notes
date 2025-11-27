@@ -14,6 +14,8 @@ export class TabIPCBridge {
         this.callbacks = {
             onTabsUpdated: null
         };
+        /** @private {boolean} - Whether listeners have been setup already to avoid duplicate binds */
+        this._listenersSetup = false;
     }
 
     /**
@@ -38,10 +40,9 @@ export class TabIPCBridge {
      */
     setupListeners() {
         if (!this.isAvailable) return;
+        if (this._listenersSetup) return;
 
         try {
-            // Support legacy 'tabs-updated' channel and newer 'tabs-sync' channel.
-            // Store unsubscribe functions so we can remove them later.
             if (typeof window.electronAPI.onTabsUpdated === 'function') {
                 this.unsubscribeUpdated = window.electronAPI.onTabsUpdated((data) => {
                     if (this.callbacks.onTabsUpdated) {
@@ -53,38 +54,35 @@ export class TabIPCBridge {
             if (typeof window.electronAPI.onTabsSync === 'function') {
                 this.unsubscribeSync = window.electronAPI.onTabsSync(async (data) => {
                     try {
-                        // Try to merge any saved content from storage if available.
                         if (window.electronAPI && typeof window.electronAPI.loadTabs === 'function') {
                             try {
                                 const res = await window.electronAPI.loadTabs();
                                 if (res && res.success && Array.isArray(res.tabs)) {
-                                        // Merge saved tabs by id when possible for stable mapping.
-                                        const saved = res.tabs;
-                                        if (Array.isArray(data.tabs) && Array.isArray(saved)) {
-                                            // Build lookup by id from saved
-                                            const savedById = {};
-                                            for (let s of saved) {
-                                                if (s && (s.id || s.tabId)) {
-                                                    savedById[s.id || s.tabId] = s;
-                                                }
-                                            }
-
-                                            for (let i = 0; i < data.tabs.length; i++) {
-                                                const t = data.tabs[i] || {};
-                                                const id = t.id || t.tabId || null;
-                                                if (id && savedById[id]) {
-                                                    data.tabs[i].content = savedById[id].content || data.tabs[i].content || '';
-                                                } else if (saved[i]) {
-                                                    // fallback to index-based merge if ids not present
-                                                    data.tabs[i].content = saved[i].content || data.tabs[i].content || '';
-                                                } else {
-                                                    data.tabs[i].content = data.tabs[i].content || '';
-                                                }
+                                    const saved = res.tabs;
+                                    if (Array.isArray(data.tabs) && Array.isArray(saved)) {
+                                        // Build lookup by id from saved
+                                        const savedById = {};
+                                        for (let s of saved) {
+                                            if (s && (s.id || s.tabId)) {
+                                                savedById[s.id || s.tabId] = s;
                                             }
                                         }
+
+                                        for (let i = 0; i < data.tabs.length; i++) {
+                                            const t = data.tabs[i] || {};
+                                            const id = t.id || t.tabId || null;
+                                            if (id && savedById[id]) {
+                                                data.tabs[i].content = savedById[id].content || data.tabs[i].content || '';
+                                            } else if (saved[i]) {
+                                                // fallback to index-based merge if ids not present
+                                                data.tabs[i].content = saved[i].content || data.tabs[i].content || '';
+                                            } else {
+                                                data.tabs[i].content = data.tabs[i].content || '';
+                                            }
+                                        }
+                                    }
                                 }
                             } catch (e) {
-                                // Ignore content merge failures but still proceed with sync
                                 console.warn('Failed to load saved tabs for content merge:', e && e.message);
                             }
                         }
@@ -97,6 +95,8 @@ export class TabIPCBridge {
                     }
                 });
             }
+
+            this._listenersSetup = true;
         } catch (error) {
             console.error('Error setting up IPC listeners:', error);
         }
@@ -114,10 +114,10 @@ export class TabIPCBridge {
             // remove any registered listeners via preload if available
             try {
                 if (typeof this.unsubscribeUpdated === 'function') this.unsubscribeUpdated();
-            } catch (e) {}
+            } catch (e) { }
             try {
                 if (typeof this.unsubscribeSync === 'function') this.unsubscribeSync();
-            } catch (e) {}
+            } catch (e) { }
         };
     }
 
@@ -152,10 +152,10 @@ export class TabIPCBridge {
     destroy() {
         try {
             if (typeof this.unsubscribeUpdated === 'function') this.unsubscribeUpdated();
-        } catch (e) {}
+        } catch (e) { }
         try {
             if (typeof this.unsubscribeSync === 'function') this.unsubscribeSync();
-        } catch (e) {}
+        } catch (e) { }
         this.callbacks.onTabsUpdated = null;
         this.isAvailable = false;
     }
@@ -166,8 +166,27 @@ export class TabIPCBridge {
      * @param {string} title - The title for the new tab.
      */
     notifyNewTab(title) {
-        if (!this.isAvailable) return;
-        window.electronAPI.newTab(title);
+        try {
+            // IPC bridge not available → Stop
+            if (!this.isAvailable || !window.electronAPI?.newTab) {
+                console.warn('newTab not available');
+                return;
+            }
+
+            // Title normalization
+            if (typeof title !== 'string' || !title.trim()) {
+                title = 'New Tab';
+            }
+
+            if (this.isDestroyed) {
+                console.warn('notifyNewTab blocked: instance destroyed');
+                return;
+            }
+
+            window.electronAPI.newTab(String(title));
+        } catch (err) {
+            console.error('Failed to send newTab:', err);
+        }
     }
 
     /**

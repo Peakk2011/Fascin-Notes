@@ -65,16 +65,39 @@ export class TabManager {
     setupEventListeners() {
         if (!this.addBtn) return;
 
-        // Handler function
-        this.handleAddClick = () => {
-            if (!this.isDestroyed) {
+        if (this._addClickBound) {
+            this.addBtn.removeEventListener('click', this._addClickBound);
+        }
+
+        this._addClickBound = (event) => {
+            if (this.isDestroyed) return;
+
+            try {
+                if (this._clickLock) return;
+                this._clickLock = true;
+                setTimeout(() => (this._clickLock = false), 80);
+
+                // IPC available → Fire at main process
+                if (this.ipcBridge?.isAvailable) {
+                    this.ipcBridge.notifyNewTab('New Tab');
+                    return;
+                }
+            } catch (err) {
+                console.error('IPC new-tab error:', err);
+                // continue to local fallback
+            }
+
+            // fallback local
+            try {
                 this.createTab();
+            } catch (err) {
+                console.error('Local tab creation failed:', err);
             }
         };
 
         this.addBtn.addEventListener(
             'click',
-            this.handleAddClick,
+            this._addClickBound, 
             {
                 passive: true
             }
@@ -133,7 +156,7 @@ export class TabManager {
             this.switchTab(id);
         }
 
-        // Always notify main process when creating tabs
+        // Notify IPC
         this.ipcBridge.notifyNewTab(sanitizedTitle);
 
         return id;
@@ -160,10 +183,10 @@ export class TabManager {
             const index = this.tabOrder.indexOf(id);
             if (index !== -1) {
                 this.ipcBridge.notifySwitchTab(index);
-                // Emit content ready event for the newly active tab so note editor can load it
                 try {
                     const activeTab = this.tabs.get(id);
                     const content = (activeTab && activeTab.contentToLoad) ? activeTab.contentToLoad : '';
+
                     window.dispatchEvent(new CustomEvent('tab-content-ready', {
                         detail: {
                             tabId: (activeTab && activeTab.remoteId) ? activeTab.remoteId : id,
@@ -280,7 +303,7 @@ export class TabManager {
 
             const tab = this.tabs.get(id);
             let nextElement;
-            
+
             if (toIndex < this.tabOrder.length - 1) {
                 const nextTabId = this.tabOrder[toIndex + 1];
                 const nextTab = this.tabs.get(nextTabId);
@@ -362,8 +385,6 @@ export class TabManager {
                         tabData.title
                     );
 
-                    // Attach any preloaded content (merged by IPC bridge) so other
-                    // renderer modules (note editor) can pick it up.
                     try {
                         tab.contentToLoad = tabData.content || '';
                         // store the main-process stable id for mapping
@@ -385,7 +406,6 @@ export class TabManager {
                         tab
                     );
 
-                    // Notify other renderer modules that content is available for this tab id
                     try {
                         window.dispatchEvent(new CustomEvent('tab-content-ready', {
                             detail: {
@@ -404,7 +424,7 @@ export class TabManager {
                 if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
                     this.switchTab(
                         this.tabOrder[
-                            activeIndex
+                        activeIndex
                         ]
                     );
                 } else if (this.tabOrder.length > 0) {
@@ -556,7 +576,7 @@ export class TabManager {
             this.ipcBridge = null;
             this.validator = null;
             this.lastSyncData = null;
-            this.isSyncing = false; 
+            this.isSyncing = false;
 
         } catch (error) {
             console.error(

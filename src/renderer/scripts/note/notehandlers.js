@@ -213,9 +213,8 @@ export const manualSave = async () => {
         const result = await window.electronAPI.saveTabs();
 
         if (result.success) {
-            console.log('✅ Manual save successful');
-
-            // แสดง indicator ถ้ามี
+            console.log('Manual save successful');
+            
             const indicator = document.getElementById('saveIndicator');
             const statusText = document.getElementById('statusText');
             if (indicator && statusText) {

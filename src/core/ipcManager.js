@@ -40,7 +40,10 @@ export class IpcManager {
      */
     setupOSHandler() {
         ipcMain.handle('get-os', () => {
-            safeLog('get-os requested, returning:', OS);
+            safeLog(
+                'get-os requested, returning:',
+                OS
+            );
             /*
                 Example you will got input like this on your OS 
                 "get-os requested, returning: darwin"
@@ -55,58 +58,82 @@ export class IpcManager {
      */
     setupTabHandlers() {
         if (!this.tabManager) {
-            safeLog(
-                'TabManager not ready for IPC handlers'
-            );
+            safeLog('TabManager not ready for IPC handlers');
             return;
         }
 
+        if (this.handlersRegistered) {
+            safeLog('Handlers already registered');
+            return;
+        }
+
+        this.handlersRegistered = true;
+
         this.registerHandler('new-tab', (event, title) => {
-            this.tabManager.createTab(title);
+            try {
+                if (!title || typeof title !== 'string') title = 'New Tab';
+                this.tabManager.createTab(title);
+            } catch (err) {
+                safeError(
+                    'Failed creating new tab:',
+                    err, 
+                    title
+                );
+            }
         });
 
         this.registerHandler('switch-tab', (event, index) => {
-            const tab = this.tabManager.tabs[index];
-            if (tab) {
-                this.tabManager.setActiveTab(tab);
-                // this.syncTabsToAllWindows();
-            } else {
-                safeError(
-                    'Invalid tab index for switch:',
-                    index
-                );
+            try {
+                const tab = this.tabManager.tabs[index];
+                if (tab) {
+                    this.tabManager.setActiveTab(tab);
+                } else {
+                    safeError('Invalid tab index for switch:', index);
+                }
+            } catch (err) {
+                safeError('Error switching tab:', err, index);
             }
         });
 
         this.registerHandler('close-tab', (event, index) => {
-            if (!this.tabManager?.closeTabByIndex) {
-                safeError(
-                    'TabManager not ready or missing closeTabByIndex method'
-                );
-                return;
-            }
+            try {
+                if (!this.tabManager?.closeTabByIndex) {
+                    safeError('TabManager not ready or missing closeTabByIndex method');
+                    return;
+                }
 
-            // Get tab count before closing
-            const tabCountBefore = this.tabManager.getTabCount();
+                const tabCountBefore = this.tabManager.getTabCount();
 
-            if (tabCountBefore <= 1) {
-                safeLog('Last tab closed - quitting app');
-                app.quit();
-            } else {
-                // Sync tabs to renderer after closing
-                this.tabManager.closeTabByIndex(index);
+                if (tabCountBefore <= 1) {
+                    safeLog('Last tab closed - quitting app');
+                    app.quit();
+                } else {
+                    this.tabManager.closeTabByIndex(index);
+                }
+            } catch (err) {
+                safeError('Error closing tab:', err, index);
             }
         });
 
         this.registerHandler('reorder-tabs', (event, from, to) => {
-            this.tabManager.reorderTabs(from, to);
-            // this.syncTabsToAllWindows();
+            try {
+                this.tabManager.reorderTabs(from, to);
+                // this.syncTabsToAllWindows();
+            } catch (err) {
+                safeError('Error reordering tabs:', err, from, to);
+            }
         });
 
         this.registerHandler('close-app', (event) => {
-            safeLog('Close app requested');
-            app.quit();
+            try {
+                safeLog('Close app requested');
+                app.quit();
+            } catch (err) {
+                safeError('Error quitting app:', err);
+            }
         });
+
+        safeLog('All Tab IPC handlers registered successfully');
     }
 
     /**
@@ -383,7 +410,6 @@ export class IpcManager {
 
         webContents.send('tabs-sync', {
             tabs: tabsData,
-            // Provide both names to be compatible with renderer variations
             activeTabIndex: activeIndex >= 0 ? activeIndex : 0,
             activeIndex: activeIndex >= 0 ? activeIndex : 0
         });
@@ -487,28 +513,82 @@ export class IpcManager {
 
     /**
      * A helper method to register an `ipcMain.on` listener with added logging and error handling.
-     * @param {string} channel - The IPC channel name.
-     * @param {(event: import('electron').IpcMainEvent, ...args: any[]) => void} handler - The callback function.
+     * @param {string} channel - IPC channel name.
+     * @param {(event: import('electron').IpcMainEvent, ...args: any[]) => void} handler - Callback function.
+     * @throws Will log internal errors but never throw to caller.
      */
     registerHandler(channel, handler) {
-        // Store for cleanup
-        this.handlers.set(
-            channel,
-            handler
-        );
+        if (typeof channel !== 'string' || !channel.trim()) {
+            safeError(
+                `Invalid IPC channel:`,
+                channel
+            );
+            return;
+        }
 
-        ipcMain.on(channel, (event, ...args) => {
+        if (typeof handler !== 'function') {
+            safeError(
+                `Invalid IPC handler for "${channel}"`
+            );
+            return;
+        }
+
+        if (this.handlers.has(channel)) {
+            const oldHandler = this.handlers.get(channel);
             try {
-                handler(
-                    event,
-                    ...args
+                ipcMain.removeListener(channel, oldHandler);
+                safeLog(
+                    `Removed old handler for channel "${channel}"`
                 );
             } catch (err) {
                 safeError(
-                    `Error in handler for "${channel}":`, err
+                    `Failed removing old handler for "${channel}"`,
+                    err
                 );
             }
-        });
+        }
+
+        const wrapped = (event, ...args) => {
+            // Fix event = undefined / null
+            if (!event) {
+                safeError(`IPC event missing for "${channel}"`);
+                return;
+            }
+
+            try {
+                // Protection against handler re-calls
+                if (event.__ipcGuard === channel) {
+                    safeError(`Recursive IPC call blocked on "${channel}"`);
+                    return;
+                }
+
+                event.__ipcGuard = channel;
+                handler(event, ...args);
+
+            } catch (err) {
+                safeError(`IPC Handler Error @ "${channel}":`, {
+                    error: err,
+                    stack: err?.stack,
+                    args
+                });
+
+            } finally {
+                try {
+                    delete event.__ipcGuard;
+                } catch (_) {
+                    // ignore
+                }
+            }
+        };
+
+        this.handlers.set(channel, wrapped);
+
+        try {
+            ipcMain.on(channel, wrapped);
+            safeLog(`Registered handler: "${channel}"`);
+        } catch (err) {
+            safeError(`Failed registering handler for "${channel}"`, err);
+        }
     }
 
     /**

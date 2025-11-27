@@ -73,12 +73,10 @@ export class TabStorage {
             });
 
             const tabsDataPromises = tabsToSave.map(async (tab) => {
-                // Support both full tab objects and pre-serialized objects
                 const id = tab.id || tab.tabId || null;
                 const title = tab.title || '';
                 const url = tab.url || '';
 
-                // Determine isActive by comparing ids when possible, otherwise fallback to object identity
                 let isActive = false;
                 try {
                     const activeId = activeTab ? (activeTab.tabId || activeTab.id || null) : null;
@@ -91,8 +89,8 @@ export class TabStorage {
                     isActive = tab === activeTab;
                 }
 
-                // Prefer already provided content on the object; otherwise try to read from BrowserView if present
                 let content = '';
+                
                 if (typeof tab.content === 'string' && tab.content.length >= 0) {
                     content = tab.content;
                 } else if (tab.view && tab.view.webContents && !tab.view.webContents.isDestroyed() && !tab.url) {

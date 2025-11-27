@@ -29,6 +29,12 @@ export const noteFeatures = async (
     saveIndicatorId = 'saveIndicator',
     statusTextId = 'statusText'
 ) => {
+    if (window.__noteFeaturesInitialized) {
+        console.warn('noteFeatures already initialized - skipping duplicate init');
+        return null;
+    }
+
+    window.__noteFeaturesInitialized = true;
     try {
         const els = {
             textarea: document.getElementById(textareaId),
@@ -82,7 +88,7 @@ export const noteFeatures = async (
             });
         }
 
-        // Listen for tab content provided by the tab manager (dispatched as CustomEvent)
+        // Listen for tab content provided by the tab manager
         const tabContentHandler = async (e) => {
             try {
                 const detail = e && e.detail ? e.detail : null;

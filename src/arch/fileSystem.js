@@ -12,7 +12,6 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
     console.log(`Saving ${tabs.length} tabs on close`);
 
     try {
-        // Use ipcManager.autoSaveTabs() to properly extract content from textarea
         await ipcManager.autoSaveTabs();
 
         // Save HTML cache of all loaded tabs
@@ -49,10 +48,15 @@ export const saveTabsOnClose = async (tabManager, tabStorage, ipcManager) => {
         });
 
         // Delete old cache files that are no longer needed
-        const activeTabIds = tabs.map(t => t.tabId).filter(id => id);
-        await clearOldCache(activeTabIds);
+        const activeTabIds = tabs.map(
+            t => t.tabId
+        )
+        .filter(
+            id => id
+        );
 
-        console.log('✓ All data saved on close');
+        await clearOldCache(activeTabIds);
+        console.log('All data saved on close');
     } catch (error) {
         console.error('Error in saveTabsOnClose:', error);
         throw error;
