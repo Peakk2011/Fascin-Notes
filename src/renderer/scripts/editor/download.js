@@ -89,3 +89,23 @@ ${editor.innerHTML}
     URL.revokeObjectURL(url);
 
 }
+
+/**
+ * Download as TXT file
+ * @param {HTMLElement} editor - Editor element
+ * @param {string} filename - Output filename
+ */
+
+export const downloadTXT = (editor, filename = 'document.txt') => {
+    const text = editor.innerText;
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+};

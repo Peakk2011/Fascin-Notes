@@ -5,7 +5,7 @@ Mint.include('stylesheet/style-components/context-menu.css');
 // Debounce utility function
 const debounce = (func, delay) => {
     let timeout;
-    return function(...args) {
+    return function (...args) {
         const context = this;
         clearTimeout(timeout);
         timeout = setTimeout(() => func.apply(context, args), delay);
@@ -39,15 +39,19 @@ export const createContextMenu = async () => {
         markups: `
             <div id="${config.menuId}" class="${config.menuClass}" role="menu">
                 ${config.items.map(item => {
-                    if (item.type === 'separator') {
-                        return `<div class="${config.separatorClass}"></div>`;
-                    }
-                    return `
-                        <div id="${item.id}" class="${config.itemClass}" role="menuitem" data-command="${item.command}">
-                            ${item.label}
+            if (item.type === 'separator') {
+                return `<div class="${config.separatorClass}"></div>`;
+            }
+            const shortcutMarkup = item.shortcut
+                ? `<span class="${config.shortcutClass}">${item.shortcut}</span>`
+                : '';
+            return `
+                        <div id="${item.id}" class="${config.itemClass}" role="menuitem" tabindex="-1" aria-disabled="false" data-command="${item.command}">
+                            <span>${item.label}</span>
+                            ${shortcutMarkup}
                         </div>
                     `;
-                }).join('')}
+        }).join('')}
             </div>
         `,
 
@@ -164,7 +168,7 @@ export const createContextMenu = async () => {
                     return true;
                 } catch (error) {
                     console.error(
-                        '[ContextMenu] initializeElements failed', 
+                        '[ContextMenu] initializeElements failed',
                         error
                     );
                     return false;
@@ -190,7 +194,7 @@ export const createContextMenu = async () => {
                     ) {
                         return;
                     }
-                    
+
                     element.addEventListener(
                         event,
                         handler,
@@ -223,7 +227,7 @@ export const createContextMenu = async () => {
                 );
 
                 state.isMenuVisible = false;
-                
+
                 setTimeout(() => {
                     if (!state.isMenuVisible) elements.contextMenu.style.display = 'none';
                 }, 150); // Match transition duration
@@ -246,7 +250,7 @@ export const createContextMenu = async () => {
                         clientX: mouseX,
                         clientY: mouseY
                     } = event;
-                    
+
                     const { innerWidth, innerHeight } = window;
                     const menuDimensions = elements.contextMenu.getBoundingClientRect();
 
@@ -329,7 +333,7 @@ export const createContextMenu = async () => {
                     state.isApplyingHistory = true;
                     state.undoStack.push(elements.textarea.innerHTML);      // Push current state to undo stack
                     elements.textarea.innerHTML = state.redoStack.pop();    // Apply the next state
-                    
+
                     state.isApplyingHistory = false;
                     updateMenuState();
                 } catch (error) {
@@ -354,7 +358,7 @@ export const createContextMenu = async () => {
                     if (!target) return;
 
                     const command = target.dataset.command;
-                    const isDisabled = target.dataset.disabled === 'true';
+                    const isDisabled = target.getAttribute('aria-disabled') === 'true';
 
                     if (!command || isDisabled) {
                         hideMenu();
@@ -376,7 +380,7 @@ export const createContextMenu = async () => {
                                 '[ContextMenu] clipboard.readText failed, falling back to execCommand paste',
                                 error
                             );
-                            
+
                             try {
                                 document.execCommand('paste');
                             } catch (error) {
@@ -414,6 +418,24 @@ export const createContextMenu = async () => {
                                 recordState(elements.textarea.innerHTML);
                             }
                         }
+                    } else if (command === 'searchWithGoogle') {
+                        const selection = window.getSelection().toString().trim();
+
+                        if (!selection) {
+                            console.warn('[ContextMenu] No text selected for search');
+                            return;
+                        }
+
+                        const searchURL = `https://www.google.com/search?q=${encodeURIComponent(selection)}`;
+
+                        if (noteAPI && typeof noteAPI.openExternal === 'function') {
+                            noteAPI.openExternal(searchURL);
+                        } else {
+                            console.warn('[ContextMenu] noteAPI.openExternal not available, using window.open');
+                            window.open(searchURL, '_blank');
+                        }
+                    } else if (command === 'selectAll') {
+                        document.execCommand('selectAll');
                     } else {
                         try {
                             document.execCommand(command);
@@ -430,7 +452,7 @@ export const createContextMenu = async () => {
                     }
                 } catch (error) {
                     console.error(
-                        '[ContextMenu] handleMenuItemClick failed', 
+                        '[ContextMenu] handleMenuItemClick failed',
                         error
                     );
                 } finally {
@@ -448,28 +470,37 @@ export const createContextMenu = async () => {
                     const selection = window.getSelection();
                     const hasSelection = !!selection && !selection.isCollapsed;
 
-                    const cutItem = menuItemsCache.get('cut');
-                    const copyItem = menuItemsCache.get('copy');
+                    // Helper function to set disabled state
+                    const setDisabledState = (item, disabled) => {
+                        if (!item) return;
+                        item.setAttribute('aria-disabled', disabled);
+                        // เพิ่ม class สำหรับ CSS styling
+                        if (disabled) {
+                            item.classList.add('disabled');
+                        } else {
+                            item.classList.remove('disabled');
+                        }
+                    };
+
+                    setDisabledState(menuItemsCache.get('cut'), !hasSelection);
+                    setDisabledState(menuItemsCache.get('copy'), !hasSelection);
+                    setDisabledState(menuItemsCache.get('searchWithGoogle'), !hasSelection);
+
+                    // Paste - async check
                     const pasteItem = menuItemsCache.get('paste');
-
-                    if (cutItem) cutItem.dataset.disabled = !hasSelection;
-                    if (copyItem) copyItem.dataset.disabled = !hasSelection;
-
-                    // Check clipboard for paste availability (async)
                     if (pasteItem) {
-                        navigator.clipboard.readText().then(text => {
-                            pasteItem.dataset.disabled = !text;
-                        }).catch(() => {
-                            pasteItem.dataset.disabled = false;
-                        });
+                        navigator.clipboard.readText()
+                            .then(text => setDisabledState(pasteItem, !text))
+                            .catch(() => setDisabledState(pasteItem, false));
                     }
 
-                    // Update undo/redo from cache
+                    // Undo/Redo
                     const undoEl = menuItemsCache.get('undo') || safeGetElementById(undoItemId);
                     const redoEl = menuItemsCache.get('redo') || safeGetElementById(redoItemId);
 
-                    if (undoEl) undoEl.dataset.disabled = state.undoStack.length <= 1;
-                    if (redoEl) redoEl.dataset.disabled = state.redoStack.length === 0;
+                    setDisabledState(undoEl, state.undoStack.length <= 1);
+                    setDisabledState(redoEl, state.redoStack.length === 0);
+
                 } catch (error) {
                     console.warn('[ContextMenu] updateMenuState failed', error);
                 }
@@ -520,9 +551,9 @@ export const createContextMenu = async () => {
 
                     debounce(() => {
                         hideMenu();
-                    }, 100), { 
-                        passive: true 
-                    }
+                    }, 100), {
+                    passive: true
+                }
                 );
 
                 addEventListener(
@@ -532,7 +563,7 @@ export const createContextMenu = async () => {
                         hideMenu();
                     }, 100)
                 );
-                
+
                 addEventListener(
                     document, 'keydown', (e) => {
                         if (e.key === 'Escape') hideMenu();
@@ -542,7 +573,7 @@ export const createContextMenu = async () => {
                 // Click outside menu to hide
                 addEventListener(document, 'click', (e) => {
                     if (state.isDestroyed) return;
-                    
+
                     const clickedInside = e.target.closest && e.target.closest(
                         `#${config.menuId}`
                     );
@@ -581,7 +612,7 @@ export const createContextMenu = async () => {
 
                 // Clear caches and references
                 menuItemsCache.clear();
-                
+
                 Object.keys(elements).forEach(
                     key => elements[key] = null
                 );

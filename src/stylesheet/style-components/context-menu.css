@@ -1,37 +1,3 @@
-:root {
-    --ctx-menu-blur: 8px;
-
-    --ctx-menu-radius: 6px;
-    --ctx-sub-menu-radius: 8px;
-    --ctx-menu-padding: 8px;
-    --ctx-menu-min-width: 190px;
-
-    --ctx-menu-bg: hsla(0, 0%, 8.5%, 0.820);
-    --ctx-menu-hover: hsl(0, 0%, 17.5%);
-    --ctx-menu-active: hsl(0, 0%, 5%);
-    --ctx-menu-text: hsl(0, 0%, 89%);
-    --ctx-menu-text-hover: hsl(0, 0%, 100%);
-
-    --ctx-menu-shadow:
-        0px 24px 38px hsla(0, 0%, 0%, 0.14),
-        0px 9px 46px hsla(0, 0%, 0%, 0.12),
-        0px 11px 15px hsla(0, 0%, 0%, 0.20);
-}
-
-@media (prefers-color-scheme: light) {
-    :root {
-        --ctx-menu-bg: hsla(60, 11%, 96%, 0.900);
-        --ctx-menu-hover: hsl(40, 15%, 90%);
-        --ctx-menu-active: hsl(0, 0%, 91%);
-        --ctx-menu-text: hsl(0, 0%, 0%);
-        --ctx-menu-text-hover: hsl(0, 0%, 0%);
-        --ctx-menu-shadow:
-            0px 4px 12px hsla(0, 0%, 0%, 0.06),
-            0px 8px 24px hsla(0, 0%, 0%, 0.08),
-            0px 16px 32px hsla(0, 0%, 0%, 0.10);
-    }
-}
-
 .context-menu {
     position: fixed;
     display: none;
@@ -52,18 +18,15 @@
 @keyframes menuAppear {
     0% {
         transform: translateY(-10px) scale(1);
-        max-height: 0;
         box-shadow: 0px 24px 38px rgba(0, 0, 0, 0);
     }
 
     50% {
         transform: translateY(0px) scale(1);
-        max-height: 250px;
     }
 
     100% {
         transform: translateY(0) scale(1);
-        max-height: 500px;
         box-shadow: var(--ctx-menu-shadow);
     }
 }
@@ -82,33 +45,59 @@
     cursor: pointer;
     user-select: none;
     font-family: var(--font-display);
-    font-weight: 450;
+    font-weight: 500;
     letter-spacing: -0.2px;
     font-size: 14px;
     position: relative;
     overflow: hidden;
+
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .context-menu-item:hover {
     background-color: var(--theme-accent);
     color: var(--theme-accent-text);
-    font-weight: 500;
 }
 
-.context-menu-item[data-disabled='true'] {
+.context-menu-item[data-disabled='true'] .context-menu-shortcut {
+    opacity: 100%;
+}
+
+.context-menu-item[data-disabled='true'],
+.context-menu-item.disabled {
     cursor: not-allowed;
     background-color: transparent;
     opacity: 60%;
 }
 
+.context-menu-item[data-disabled='true']:hover,
+.context-menu-item.disabled:hover {
+    background-color: transparent;
+    color: var(--ctx-menu-text);
+}
+
 .context-menu-item[data-disabled='true']:hover {
     background-color: transparent;
     color: var(--ctx-menu-text);
-    font-weight: 450;
 }
 
 .context-menu-separator {
     height: 1px;
     background-color: var(--theme-border);
     margin: 0.3rem 0;
+}
+
+.context-menu-shortcut {
+    font-size: 12px;
+    text-transform: uppercase;
+    opacity: 50%;
+    font-family: JETBRAINSMONO;
+
+    /* display: none; */
+}
+
+.context-menu-item.disabled .context-menu-shortcut {
+    opacity: 80%;
 }

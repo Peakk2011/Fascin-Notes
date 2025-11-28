@@ -53,12 +53,17 @@
     font-display: swap;
 }
 
+@font-face {
+    font-family: 'JETBRAINSMONO';
+    src: url('../../assets/typefaces/JETBRAINSMONO-MEDIUM.ttf');
+}
+
 :root {
     /* Theme Colors */
     --theme-bg: hsl(0, 0%, 8%);
     --theme-fg: #ffffff;
     --theme-accent: hsl(120, 7%, 85%);
-    --theme-accent-text: hsl(120, 7%, 20%);
+    --theme-accent-text: hsl(120, 7%, 10%);
 
     --theme-accent-selection: hsl(120, 2.5%, 20%);
     --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
@@ -68,7 +73,7 @@
     --hover-color: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
 
-    --theme-model: hsl(0, 0%, 9.5%);
+    --theme-model: hsla(0, 0%, 8.5%, 0.820);
     --theme-model-border: hsl(0, 0%, 20%);
 
     --font-primary: "Manrope", "Leelawadee UI", system-ui, sans-serif;
@@ -85,6 +90,95 @@
     --ResetBoxSizing: border-box;
     /* Buttons */
     --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
+
+    --ctx-menu-blur: 8px;
+    --ctx-menu-radius: 6px;
+    --ctx-sub-menu-radius: 8px;
+    --ctx-menu-padding: 8px;
+    --ctx-menu-min-width: 190px;
+
+    --ctx-menu-bg: hsla(0, 0%, 8.5%, 0.820);
+    --ctx-menu-hover: hsl(0, 0%, 17.5%);
+    --ctx-menu-active: hsl(0, 0%, 5%);
+    --ctx-menu-text: hsl(0, 0%, 89%);
+    --ctx-menu-text-hover: hsl(0, 0%, 100%);
+
+    --ctx-menu-shadow:
+        0px 24px 38px hsla(0, 0%, 0%, 0.14),
+        0px 9px 46px hsla(0, 0%, 0%, 0.12),
+        0px 11px 15px hsla(0, 0%, 0%, 0.20);
+
+    /* Status Variables */
+    --status-font-size: 14px;
+    --status-gap: 6px;
+    --status-top: 20.5px;
+    --status-right: 18px;
+    --status-z-index: 2;
+
+    /* Dot Variables */
+    --dot-size: 10px;
+    --dot-saved-color: hsl(80, 40%, 60%);
+    --dot-saving-color: hsl(29, 44%, 56%);
+
+    /* Editor Variables */
+    --editor-padding: 1.4rem 1.2rem;
+    --editor-font-size: 16px;
+    --editor-line-height: 1.4;
+    --editor-letter-spacing: 0.2px;
+    --editor-heading-letter-spacing: -0.8px;
+    --editor-heading-weight: 550;
+    --editor-heading-margin: 1rem;
+    --editor-heading-width: 80%;
+    --editor-blockquote-padding: 0.5rem;
+    --editor-blockquote-border: 2px;
+    --editor-blockquote-line-height: 1.6;
+    --editor-blockquote-weight: 550;
+    --editor-list-padding: 1rem;
+    --editor-bullet-size: 22px;
+    --editor-bullet-offset-x: -4px;
+    --editor-bullet-offset-y: -5.5px;
+    --editor-hr-opacity: 0.4;
+    --editor-placeholder-opacity: 0.65;
+
+    /* Zoom Controls Variables */
+    --zoom-bottom: 1.35rem;
+    --zoom-gap: 8px;
+    --zoom-z-index: 3;
+    --zoom-btn-padding: 1.15rem 0.95rem;
+    --zoom-btn-font-size: 13px;
+    --zoom-btn-weight: 500;
+    --zoom-btn-border-radius: 100vmax;
+    --zoom-btn-border-width: 1px;
+    --zoom-btn-width: 34px;
+    --zoom-btn-hover-color: #000000;
+    --zoom-btn-hover-weight: 500;
+    --zoom-btn-transition: all 250ms cubic-bezier(0.165, 0.84, 0.44, 1);
+
+    /* Export Menu Variables */
+    --export-menu-offset: 14px;
+    --export-menu-bg: var(--ctx-menu-bg);
+    --export-menu-min-width: 180px;
+    --export-menu-border-radius: 8px;
+    --export-menu-z-index: 100;
+    --export-menu-padding: 0.5rem;
+    --export-menu-transition: 200ms cubic-bezier(0.2, 0.0, 0, 1.0);
+    --export-btn-padding: 0.5rem calc(var(--ctx-menu-padding) * 1.15);
+    --export-btn-font-size: 14px;
+    --export-btn-weight: 500;
+    --export-btn-letter-spacing: -0.2px;
+    --export-btn-border-radius: 10px;
+    --export-btn-transition: 100ms cubic-bezier(0.2, 0.0, 0, 1.0);
+
+    /* Selection Menu Variables */
+    --selection-menu-border-radius: 6px;
+    --selection-menu-padding: 0.25rem;
+    --selection-menu-z-index: 1000;
+    --selection-menu-offset-y: -8px;
+    --selection-menu-transition: 250ms cubic-bezier(0.2, 0.0, 0, 1.0);
+    --selection-btn-padding: 0.3rem 0.65rem;
+    --selection-btn-font-size: 14px;
+    --selection-btn-icon-size: 16px;
+    --selection-btn-transition: 100ms cubic-bezier(0.2, 0.0, 0, 1.0);
 }
 
 ::selection {
@@ -112,13 +206,25 @@
         --theme-bg: #f9f9f9;
         --theme-fg: #0f0f0f;
         --hover-color: #dfdfdf;
-        --theme-border: hsl(0, 0%, 80%);
-        --theme-accent: hsl(200, 9%, 32%);
+        --theme-border: hsl(0, 0%, 88%);
+        --theme-accent: hsl(195, 10%, 90%);
         --PrimaryButtonsColors: hsl(50, 10%, 80%);
-        --PrimaryButtonsColors: var(--hover-color);
+        --PrimaryButtonsColors: hsl(0, 0%, 95%);
         color-scheme: light;
         background: var(--theme-bg);
         color: var(--theme-fg);
+
+        --ctx-menu-bg: hsl(60, 11%, 96%);
+        --ctx-menu-hover: hsl(40, 15%, 90%);
+        --ctx-menu-active: hsl(0, 0%, 91%);
+        --ctx-menu-text: hsl(0, 0%, 0%);
+        --ctx-menu-text-hover: hsl(0, 0%, 0%);
+        --ctx-menu-shadow:
+            0 12px 24px rgba(0, 0, 0, 0.05),
+            0 24px 48px rgba(0, 0, 0, 0.06);
+
+        --theme-accent-selection: hsl(120, 2.5%, 88%);
+        --theme-accent-selection-texts: hsl(120, 12%, 15%);
     }
 }
 

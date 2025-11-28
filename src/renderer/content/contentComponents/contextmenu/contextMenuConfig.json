@@ -2,16 +2,18 @@
     "menuId": "context-menu",
     "menuClass": "context-menu",
     "itemClass": "context-menu-item",
+    "shortcutClass": "context-menu-shortcut",
     "separatorClass": "context-menu-separator",
     "visibleClass": "visible",
     "items": [
-        { "id": "context-cut", "label": "Cut", "command": "cut" },
-        { "id": "context-copy", "label": "Copy", "command": "copy" },
-        { "id": "context-paste", "label": "Paste", "command": "paste" },
+        { "id": "context-cut", "label": "Cut", "command": "cut", "shortcut": "Ctrl + X" },
+        { "id": "context-copy", "label": "Copy", "command": "copy", "shortcut": "Ctrl + C" },
+        { "id": "context-paste", "label": "Paste", "command": "paste", "shortcut": "Ctrl + V" },
+        { "id": "context-search-google", "label": "Search with Google", "command": "searchWithGoogle" },
         { "type": "separator" },
-        { "id": "context-undo", "label": "Undo", "command": "undo" },
-        { "id": "context-redo", "label": "Redo", "command": "redo" },
+        { "id": "context-undo", "label": "Undo", "command": "undo", "shortcut": "Ctrl + Z" },
+        { "id": "context-redo", "label": "Redo", "command": "redo", "shortcut": "Ctrl + Y" },
         { "type": "separator" },
-        { "id": "context-select-all", "label": "Select All", "command": "selectAll" }
+        { "id": "context-select-all", "label": "Select All", "command": "selectAll", "shortcut": "Ctrl + A" }
     ]
 }

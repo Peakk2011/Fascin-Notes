@@ -13,5 +13,7 @@
     "resetZoomButtonText": "Reset Text Sizes",
     "exportHtmlButtonId": "export-html-btn",
     "exportHtmlButtonTitle": "Export as HTML",
-    "exportHtmlButtonText": "Download This Note"
+    "exportHtmlButtonText": "Download This Note",
+    "exportMenuHtmlText": "Download as HTML",
+    "exportMenuTxtText": "Download as plain text"
 }
