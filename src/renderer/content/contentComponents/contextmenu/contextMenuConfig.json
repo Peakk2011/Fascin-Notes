@@ -1,0 +1,17 @@
+{
+    "menuId": "context-menu",
+    "menuClass": "context-menu",
+    "itemClass": "context-menu-item",
+    "separatorClass": "context-menu-separator",
+    "visibleClass": "visible",
+    "items": [
+        { "id": "context-cut", "label": "Cut", "command": "cut" },
+        { "id": "context-copy", "label": "Copy", "command": "copy" },
+        { "id": "context-paste", "label": "Paste", "command": "paste" },
+        { "type": "separator" },
+        { "id": "context-undo", "label": "Undo", "command": "undo" },
+        { "id": "context-redo", "label": "Redo", "command": "redo" },
+        { "type": "separator" },
+        { "id": "context-select-all", "label": "Select All", "command": "selectAll" }
+    ]
+}

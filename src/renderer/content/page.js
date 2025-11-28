@@ -5,12 +5,14 @@
 import { noteFeatures } from '../scripts/note.js';
 import { fetchJSON } from '../../utils/fetch.js';
 import { createModelFind } from './contentComponents/model/modelFind.js';
+import { createContextMenu } from './contentComponents/contextmenu/contextMenu.js';
 import { initRichEditor } from './rich.js';
 import '../../api/cursor-behavior.js';
 
 export const Page = {
     // Cache instances
     _modelFindCache: null,
+    _contextMenuCache: null,
     _configCache: null,
 
     async _getConfig() {
@@ -29,9 +31,19 @@ export const Page = {
         return this._modelFindCache;
     },
 
+    async _getContextMenu() {
+        if (!this._contextMenuCache) {
+            this._contextMenuCache = await createContextMenu();
+        }
+        return this._contextMenuCache;
+    },
+
     async markups() {
-        const config = await this._getConfig();
-        const modelFind = await this._getModelFind();
+        const [config, modelFind, contextMenu] = await Promise.all([
+            this._getConfig(),
+            this._getModelFind(),
+            this._getContextMenu()
+        ]);
 
         return `
             <div class="${config.statusContainerClass}">
@@ -72,6 +84,7 @@ export const Page = {
             </div>
             
             ${modelFind.markups}
+            ${contextMenu.markups}
         `;
     },
 
@@ -126,6 +139,10 @@ export const Page = {
             // Initialize model find component (use cached instance)
             const modelFind = await this._getModelFind();
             modelFind.init({ pageConfig: config, noteAPI });
+
+            // Initialize context menu component
+            const contextMenu = await this._getContextMenu();
+            contextMenu.init({ pageConfig: config, noteAPI });
 
             return noteAPI;
         } catch (error) {

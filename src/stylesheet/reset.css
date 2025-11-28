@@ -58,6 +58,7 @@
     --theme-bg: hsl(0, 0%, 8%);
     --theme-fg: #ffffff;
     --theme-accent: hsl(120, 7%, 85%);
+    --theme-accent-text: hsl(120, 7%, 20%);
 
     --theme-accent-selection: hsl(120, 2.5%, 20%);
     --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
