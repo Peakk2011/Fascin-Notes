@@ -49,7 +49,6 @@
     letter-spacing: -0.2px;
     font-size: 14px;
     position: relative;
-    overflow: hidden;
 
     display: flex;
     justify-content: space-between;
@@ -100,4 +99,57 @@
 
 .context-menu-item.disabled .context-menu-shortcut {
     opacity: 80%;
+}
+
+.context-submenu {
+    position: absolute;
+    top: -0.5rem;
+    left: 104%;
+    display: none;
+    visibility: hidden;
+    opacity: 0;
+
+    /* Reuse main menu styles */
+    background: var(--ctx-menu-bg);
+    backdrop-filter: blur(var(--ctx-menu-blur));
+    border-radius: var(--ctx-menu-radius);
+    padding: 0.5rem;
+    min-width: var(--ctx-menu-min-width);
+    box-shadow: var(--ctx-menu-shadow);
+    border: var(--theme-border) solid 1px;
+    color: var(--theme-fg);
+    z-index: 10001;
+
+    transition: opacity 200ms cubic-bezier(0.2, 0.0, 0, 1.0), transform 400ms cubic-bezier(0.2, 0.0, 0, 1.0);
+    transform: translateY(-8px);
+
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.context-submenu.visible {
+    display: block;
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Custom Scrollbar for Submenu */
+.context-submenu::-webkit-scrollbar {
+    width: 8px;
+}
+
+.context-submenu::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: var(--ctx-menu-radius);
+}
+
+.context-submenu::-webkit-scrollbar-thumb {
+    background-color: var(--theme-border);
+    border-radius: 100vmax;
+    border: 2px solid var(--ctx-menu-bg);
+}
+
+.context-submenu::-webkit-scrollbar-thumb:hover {
+    background-color: var(--theme-accent);
 }

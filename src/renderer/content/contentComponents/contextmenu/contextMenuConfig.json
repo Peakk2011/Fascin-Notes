@@ -1,19 +1,142 @@
 {
-    "menuId": "context-menu",
-    "menuClass": "context-menu",
-    "itemClass": "context-menu-item",
-    "shortcutClass": "context-menu-shortcut",
-    "separatorClass": "context-menu-separator",
-    "visibleClass": "visible",
-    "items": [
-        { "id": "context-cut", "label": "Cut", "command": "cut", "shortcut": "Ctrl + X" },
-        { "id": "context-copy", "label": "Copy", "command": "copy", "shortcut": "Ctrl + C" },
-        { "id": "context-paste", "label": "Paste", "command": "paste", "shortcut": "Ctrl + V" },
-        { "id": "context-search-google", "label": "Search with Google", "command": "searchWithGoogle" },
-        { "type": "separator" },
-        { "id": "context-undo", "label": "Undo", "command": "undo", "shortcut": "Ctrl + Z" },
-        { "id": "context-redo", "label": "Redo", "command": "redo", "shortcut": "Ctrl + Y" },
-        { "type": "separator" },
-        { "id": "context-select-all", "label": "Select All", "command": "selectAll", "shortcut": "Ctrl + A" }
-    ]
+  "menuId": "context-menu",
+  "menuClass": "context-menu",
+  "itemClass": "context-menu-item",
+  "shortcutClass": "context-menu-shortcut",
+  "separatorClass": "context-menu-separator",
+  "submenuContainerClass": "context-submenu-container",
+  "submenuClass": "context-submenu",
+  "visibleClass": "visible",
+  "MAX_HISTORY_SIZE": 50,
+  "items": [
+    {
+      "id": "context-undo",
+      "label": "Undo",
+      "command": "undo",
+      "shortcut": "Ctrl+Z"
+    },
+    {
+      "id": "context-redo",
+      "label": "Redo",
+      "command": "redo",
+      "shortcut": "Ctrl+Y"
+    },
+    { "type": "separator" },
+    {
+      "id": "context-cut",
+      "label": "Cut",
+      "command": "cut",
+      "shortcut": "Ctrl + X"
+    },
+    {
+      "id": "context-copy",
+      "label": "Copy",
+      "command": "copy",
+      "shortcut": "Ctrl + C"
+    },
+    {
+      "id": "context-paste",
+      "label": "Paste",
+      "command": "paste",
+      "shortcut": "Ctrl + V"
+    },
+    { "type": "separator" },
+    {
+      "id": "context-translate",
+      "label": "Translate",
+      "command": "translate",
+      "submenu": [
+        {
+          "id": "translate-en",
+          "label": "to English",
+          "command": "translate",
+          "value": "english"
+        },
+        {
+          "id": "translate-th",
+          "label": "to Thai",
+          "command": "translate",
+          "value": "thai"
+        },
+        {
+          "id": "translate-ja",
+          "label": "to Japanese",
+          "command": "translate",
+          "value": "japanese"
+        },
+        {
+          "id": "translate-ko",
+          "label": "to Korean",
+          "command": "translate",
+          "value": "korean"
+        },
+        {
+          "id": "translate-zh",
+          "label": "to Chinese",
+          "command": "translate",
+          "value": "chinese"
+        },
+        {
+          "id": "translate-fr",
+          "label": "to French",
+          "command": "translate",
+          "value": "french"
+        },
+        {
+          "id": "translate-de",
+          "label": "to German",
+          "command": "translate",
+          "value": "german"
+        },
+        {
+          "id": "translate-es",
+          "label": "to Spanish",
+          "command": "translate",
+          "value": "spanish"
+        },
+        {
+          "id": "translate-ru",
+          "label": "to Russian",
+          "command": "translate",
+          "value": "russian"
+        },
+        {
+          "id": "translate-pt",
+          "label": "to Portuguese",
+          "command": "translate",
+          "value": "portuguese"
+        },
+        {
+          "id": "translate-it",
+          "label": "to Italian",
+          "command": "translate",
+          "value": "italian"
+        },
+        {
+          "id": "translate-vi",
+          "label": "to Vietnamese",
+          "command": "translate",
+          "value": "vietnamese"
+        },
+        {
+          "id": "translate-id",
+          "label": "to Indonesian",
+          "command": "translate",
+          "value": "indonesian"
+        }
+      ]
+    },
+    {
+      "id": "context-search-google",
+      "label": "Search with Google",
+      "command": "searchWithGoogle"
+    },
+    { "type": "separator" },
+    {
+      "id": "context-select-all",
+      "label": "Select All",
+      "command": "selectAll",
+      "shortcut": "Ctrl + A"
+    }
+  ]
 }

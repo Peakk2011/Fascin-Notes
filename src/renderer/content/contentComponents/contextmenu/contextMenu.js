@@ -1,5 +1,6 @@
 import { Mint } from '../../../../framework/mint.js';
 import { fetchJSON } from '../../../../utils/fetch.js';
+import { translate } from '../../../../api/translate/translator.js';
 Mint.include('stylesheet/style-components/context-menu.css');
 
 // Debounce utility function
@@ -35,23 +36,43 @@ export const createContextMenu = async () => {
     const undoItemId = config.items.find(i => i.command === 'undo')?.id;
     const redoItemId = config.items.find(i => i.command === 'redo')?.id;
 
-    return {
-        markups: `
-            <div id="${config.menuId}" class="${config.menuClass}" role="menu">
-                ${config.items.map(item => {
+    const generateMenuItems = (items) => {
+        return items.map(item => {
             if (item.type === 'separator') {
                 return `<div class="${config.separatorClass}"></div>`;
             }
+
             const shortcutMarkup = item.shortcut
                 ? `<span class="${config.shortcutClass}">${item.shortcut}</span>`
                 : '';
-            return `
-                        <div id="${item.id}" class="${config.itemClass}" role="menuitem" tabindex="-1" aria-disabled="false" data-command="${item.command}">
-                            <span>${item.label}</span>
-                            ${shortcutMarkup}
+
+            const commandAttr = item.command ? `data-command="${item.command}"` : '';
+            const valueAttr = item.value ? `data-value="${item.value}"` : '';
+
+            if (item.submenu) {
+                return `
+                    <div id="${item.id}" class="${config.itemClass}" role="menuitem" aria-haspopup="true" ${commandAttr}>
+                        <span>${item.label}</span>
+                        <div class="${config.submenuClass}">
+                            ${generateMenuItems(item.submenu)}
                         </div>
-                    `;
-        }).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div id="${item.id}" class="${config.itemClass}" role="menuitem" tabindex="-1" aria-disabled="false" ${commandAttr} ${valueAttr}>
+                    ${item.label}
+                    ${shortcutMarkup}
+                </div>
+            `;
+        }).join('');
+    };
+
+    return {
+        markups: `
+            <div id="${config.menuId}" class="${config.menuClass}" role="menu">
+                ${generateMenuItems(config.items)}
             </div>
         `,
 
@@ -228,9 +249,19 @@ export const createContextMenu = async () => {
 
                 state.isMenuVisible = false;
 
-                setTimeout(() => {
-                    if (!state.isMenuVisible) elements.contextMenu.style.display = 'none';
-                }, 150); // Match transition duration
+                const handleTransitionEnd = () => {
+                    if (!state.isMenuVisible) {
+                        elements.contextMenu.style.display = 'none';
+                    }
+
+                    // Show selection-menu when context menu is hidden
+                    const selectionMenu = document.querySelector('.selection-menu');
+                    if (selectionMenu) {
+                        selectionMenu.style.display = '';
+                    }
+                    elements.contextMenu.removeEventListener('transitionend', handleTransitionEnd);
+                };
+                elements.contextMenu.addEventListener('transitionend', handleTransitionEnd);
             };
 
             /**
@@ -241,6 +272,12 @@ export const createContextMenu = async () => {
                 try {
                     if (state.isDestroyed) return;
                     event.preventDefault();
+
+                    // Hide selection-menu when context menu is shown
+                    const selectionMenu = document.querySelector('.selection-menu');
+                    if (selectionMenu) {
+                        selectionMenu.style.display = 'none';
+                    }
 
                     elements.contextMenu.style.display = 'block';
 
@@ -418,6 +455,47 @@ export const createContextMenu = async () => {
                                 recordState(elements.textarea.innerHTML);
                             }
                         }
+                    } else if (command === 'translate') {
+                        hideMenu();
+
+                        const targetMethod = target.dataset.value;
+                        const translateFunc = translate[targetMethod];
+
+                        if (!targetMethod) return;
+
+                        if (typeof translateFunc !== 'function') {
+                            console.error(`[ContextMenu] Invalid translation method: ${targetMethod}`);
+                            return;
+                        }
+
+                        const selection = window.getSelection();
+                        const selectedText = selection.toString().trim();
+
+                        if (!selectedText) return;
+
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        
+                        const feedbackNode = document.createTextNode('Translating..');
+                        range.insertNode(feedbackNode);
+
+                        try {
+                            const translatedText = await translateFunc(selectedText);
+                            feedbackNode.textContent = translatedText;
+
+                            // Move cursor to the end of the translated text
+                            range.setStartAfter(feedbackNode);
+                            range.collapse(true);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        } catch (error) {
+                            console.error(
+                                `[ContextMenu] Translation failed for ${targetMethod}`,
+                                error
+                            );
+
+                            feedbackNode.textContent = selectedText;
+                        }
                     } else if (command === 'searchWithGoogle') {
                         const selection = window.getSelection().toString().trim();
 
@@ -456,7 +534,9 @@ export const createContextMenu = async () => {
                         error
                     );
                 } finally {
-                    hideMenu();
+                    if (event.target.closest('[data-command="translate"]') === null) {
+                        hideMenu();
+                    }
                 }
             };
 
@@ -485,6 +565,7 @@ export const createContextMenu = async () => {
                     setDisabledState(menuItemsCache.get('cut'), !hasSelection);
                     setDisabledState(menuItemsCache.get('copy'), !hasSelection);
                     setDisabledState(menuItemsCache.get('searchWithGoogle'), !hasSelection);
+                    setDisabledState(menuItemsCache.get('translate'), !hasSelection);
 
                     // Paste - async check
                     const pasteItem = menuItemsCache.get('paste');
@@ -580,6 +661,78 @@ export const createContextMenu = async () => {
 
                     if (!clickedInside) hideMenu();
                 });
+
+                // Submenu hover events
+                const submenuTriggers = elements.contextMenu.querySelectorAll('[aria-haspopup="true"]');
+                submenuTriggers.forEach(trigger => {
+                    const submenu = trigger.querySelector(`.${config.submenuClass}`);
+                    if (!submenu) return;
+
+                    let showTimeout;
+                    let hideTimeout;
+
+                    const showSubmenu = () => {
+                        if (trigger.getAttribute('aria-disabled') === 'true') {
+                            return;
+                        }
+
+                        clearTimeout(hideTimeout);
+
+                        showTimeout = setTimeout(() => {
+                            submenu.style.display = 'block';
+
+                            requestAnimationFrame(() => {
+                                submenu.classList.add('visible');
+                                
+                                trigger.setAttribute(
+                                    'aria-expanded',
+                                    'true'
+                                );
+                            });
+                        }, 150);
+                    };
+
+                    const hideSubmenu = () => {
+                        clearTimeout(showTimeout);
+
+                        submenu.classList.remove('visible');
+                        
+                        trigger.setAttribute(
+                            'aria-expanded',
+                            'false'
+                        );
+
+                        hideTimeout = setTimeout(() => {
+                            submenu.style.display = 'none';
+                        }, 200);
+                    };
+
+                    const setupListeners = (element, enterFn, leaveFn) => {
+                        addEventListener(
+                            element,
+                            'mouseenter',
+                            enterFn
+                        );
+
+                        addEventListener(
+                            element,
+                            'mouseleave',
+                            leaveFn
+                        );
+                    };
+
+                    setupListeners(
+                        trigger,
+                        showSubmenu,
+                        hideSubmenu
+                    );
+
+                    setupListeners(submenu, () => {
+                        clearTimeout(showTimeout);
+                        clearTimeout(hideTimeout);
+                    }, hideSubmenu);
+                });
+
             };
 
             /**

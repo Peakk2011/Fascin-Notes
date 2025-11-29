@@ -7,6 +7,7 @@ import { fetchJSON } from '../../utils/fetch.js';
 import { createModelFind } from './contentComponents/model/modelFind.js';
 import { createContextMenu } from './contentComponents/contextmenu/contextMenu.js';
 import { initRichEditor } from './rich.js';
+import { translate } from '../../api/translate/translator.js';
 import '../../api/cursor-behavior.js';
 
 export const Page = {
@@ -371,6 +372,27 @@ export const Page = {
             // Initialize context menu component
             const contextMenu = await this._getContextMenu();
             contextMenu.init({ pageConfig: config, noteAPI });
+
+            // (async () => {
+            //     try {
+            //         console.log("Running translation tests...");
+            //         // Thai translation
+            //         const thai = await translate.thai("Hello world");
+            //         console.log("Thai:", thai);
+
+            //         // English translation
+            //         const english = await translate.english("สวัสดีครับ");
+            //         console.log("English:", english);
+
+            //         // Japanese translation
+            //         const japanese = await translate.japanese("Good morning");
+            //         console.log("Japanese:", japanese);
+
+            //         console.log("Translation tests finished.");
+            //     } catch (error) {
+            //         console.error("Translation test failed:", error);
+            //     }
+            // })();
 
             return noteAPI;
         } catch (error) {

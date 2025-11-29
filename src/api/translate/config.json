@@ -1,0 +1,18 @@
+{
+    "maxTextLength": 5000,
+    "timeoutMs": 10000,
+    "networkCheckUrl": "https://www.google.com/favicon.ico",
+    "networkCheckTimeout": 3000,
+    "apis": {
+        "lingva": {
+            "baseUrl": "https://lingva.ml/api/v1",
+            "enabled": true,
+            "requiresInternet": true
+        },
+        "libretranslate": {
+            "baseUrl": "https://libretranslate.de/translate",
+            "enabled": true,
+            "requiresInternet": false
+        }
+    }
+}
