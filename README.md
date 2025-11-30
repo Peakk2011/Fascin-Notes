@@ -14,3 +14,19 @@
 </div>
 <br>
 Feel the idea before you write it.
+
+## Quick Install
+```bash
+git clone https://github.com/Peakk2011/Fascinate-Note.git
+cd Fascinate-Note
+make
+```
+
+## License
+GNU License - see [LICENSE](LICENSE.md) file for details
+
+## Contributing
+Pull requests welcome! Please keep the philosophy of simplicity and speed.
+
+## Author
+Made by Mint teams
