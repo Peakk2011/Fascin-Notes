@@ -1,80 +1,84 @@
-import { BrowserView } from "electron";
+import { BrowserView, dialog } from "electron";
 import path from 'node:path';
 import { resolvePath } from '../utils/paths.js';
-import { OS } from '../config/osConfig.js';
+
+const TAB_BAR_HEIGHT = 38;
+const MAX_TABS = 7;
 
 /**
- * Manages a collection of tabs, where each tab is a BrowserView,
- * within a main BrowserWindow. It handles creating, activating,
- * closing, and laying out tabs.
+ * Manages tabs using BrowserView inside a BrowserWindow.
+ * Optimized for performance, memory safety, and responsiveness.
  */
-import { dialog } from 'electron';
 export class TabManager {
-    /**
-     * @param {import('electron').BrowserWindow} mainWindow The main window that will host the tabs.
-     */
     constructor(mainWindow) {
+        if (!mainWindow) throw new Error("mainWindow is required");
+
         this.mainWindow = mainWindow;
         this.tabs = [];
-        this._nextTabId = 1;
         this.activeTab = null;
         this.isDestroyed = false;
-        this.listenersAttached = false;
-        this.mainWindow.setMaxListeners(20);
+        this._nextTabId = 1;
+        this._boundHandlers = new Map();
 
-        // Store references of listeners for cleanup
-        this.resizeHandler = () => {
-            if (!this.isDestroyed) {
-                this.layoutActiveTab();
-            }
-        };
+        // Debounce layout
+        this._debouncedLayout = this._debounce(() => this.layoutActiveTab(), 16);
 
-        this.enterFullScreenHandler = () => {
-            if (!this.isDestroyed) {
-                this.layoutActiveTab();
-            }
-        };
-
-        this.leaveFullScreenHandler = () => {
-            if (!this.isDestroyed) {
-                this.layoutActiveTab();
-            }
-        };
-
-        if (!this.listenersAttached) {
-            this.mainWindow.on(
-                'resize',
-                this.resizeHandler
-            );
-            this.mainWindow.on(
-                'enter-full-screen',
-                this.enterFullScreenHandler
-            );
-            this.mainWindow.on(
-                'leave-full-screen',
-                this.leaveFullScreenHandler
-            );
-            this.listenersAttached = true;
-        }
+        this._attachWindowListeners();
     }
 
-    /**
-     * Creates a new tab with a given title and optional content.
-     * @param {string} [title=`Tab ${this.tabs.length + 1}`] - The title for the new tab.
-     * @param {boolean} [shouldSync=true] - Whether to immediately set the new tab as active.
-     * @param {string|null} [contentToLoad=null] - Initial text content to load into the tab's textarea.
-     * @returns {object|null} The created tab object or null if the tab limit is reached or the manager is destroyed.
-     * The tab object contains `title`, `view` (BrowserView), `loaded` status, and `contentToLoad`.
-     */
-    createTab(title = `Tab ${this.tabs.length + 1}`, shouldSync = true, contentToLoad = null) {
-        if (this.isDestroyed) {
-            return null;
-        }
+    // === Private Helpers ===
+    _debounce(fn, wait) {
+        let timeout;
+        return () => {
+            clearTimeout(timeout);
+            timeout = setTimeout(fn, wait);
+        };
+    }
 
-        if (this.tabs.length >= 7) {
-            dialog.showMessageBox(this.mainWindow, {
+    _attachWindowListeners() {
+        if (this._boundHandlers.size > 0) return;
+
+        const handlers = {
+            resize: () => this._debouncedLayout(),
+            'enter-full-screen': () => this._debouncedLayout(),
+            'leave-full-screen': () => this._debouncedLayout(),
+        };
+
+        Object.entries(handlers).forEach(([event, handler]) => {
+            this.mainWindow.on(event, handler);
+            this._boundHandlers.set(event, handler);
+        });
+    }
+
+    _removeWindowListeners() {
+        this._boundHandlers.forEach((handler, event) => {
+            try {
+                this.mainWindow.removeListener(event, handler);
+            } catch (_) {}
+        });
+        this._boundHandlers.clear();
+    }
+
+    _destroyView(view) {
+        if (!view) return;
+        try {
+            if (!view.isDestroyed?.()) view.destroy();
+        } catch (_) {}
+        try {
+            if (view.webContents && !view.webContents.isDestroyed()) {
+                view.webContents.destroy();
+            }
+        } catch (_) {}
+    }
+
+    // === Public API ===
+    createTab(title = `Tab ${this.tabs.length + 1}`, shouldActivate = true, contentToLoad = null) {
+        if (this.isDestroyed) return null;
+        if (this.tabs.length >= MAX_TABS) {
+            dialog.showMessageBoxSync(this.mainWindow, {
+                type: 'warning',
                 title: 'Fascinate Note',
-                message: 'Maximum 7 tabs allowed\nPlease resize this window.'
+                message: `Maximum ${MAX_TABS} tabs allowed.\nPlease close one or resize window.`,
             });
             return null;
         }
@@ -92,12 +96,12 @@ export class TabManager {
             title,
             view,
             loaded: false,
-            contentToLoad: contentToLoad // Store content to be loaded
+            contentToLoad,
         };
 
         this.tabs.push(tab);
 
-        if (shouldSync) {
+        if (shouldActivate) {
             this.setActiveTab(tab);
         } else {
             this.activeTab = tab;
@@ -106,319 +110,140 @@ export class TabManager {
         return tab;
     }
 
-    /**
-     * Sets the specified tab as the active and visible one.
-     * It handles removing the previous view and adding the new one.
-     * @param {object} tab - The tab object to activate.
-     */
     setActiveTab(tab) {
-        if (this.isDestroyed || !tab) {
-            return;
-        }
+        if (this.isDestroyed || !tab || this.activeTab === tab) return;
 
+        // Remove old
         if (this.activeTab?.view) {
             try {
-                this.mainWindow.removeBrowserView(
-                    this.activeTab.view
-                );
-            } catch (error) {
-                console.warn(
-                    'Warning: Could not remove browser view:',
-                    error.message
-                );
-            }
+                this.mainWindow.removeBrowserView(this.activeTab.view);
+            } catch (_) {}
         }
 
         this.activeTab = tab;
 
+        // Load content if first time
         if (!tab.loaded) {
-            try {
-                tab.view.webContents.loadFile(
-                    path.join(
-                        resolvePath('../index.html')
-                    )
-                );
+            tab.view.webContents.loadFile(resolvePath('../index.html'));
 
-                if (tab.contentToLoad) {
-                    console.log('Content to load:', {
-                        length: tab.contentToLoad.length,
-                        preview: tab.contentToLoad.substring(0, 100),
-                        type: typeof tab.contentToLoad
-                    });
-
-                    tab.view.webContents.once('did-finish-load', () => {
-                        setTimeout(async () => {
-                            try {
-                                const escapedContent = JSON.stringify(tab.contentToLoad);
-
-                                await tab.view.webContents.executeJavaScript(`
-                                    (function() {
-                                        const textarea = document.getElementById("autoSaveTextarea");
-                                        if (textarea) {
-                                            textarea.value = ${escapedContent};
-                                            return true;
-                                        }
-                                        return false;
-                                    })()
-                                `);
-
-                                console.log(`Content restored for "${tab.title}"`);
-                                tab.contentToLoad = null;
-                            } catch (err) {
-                                console.error('Failed to restore content:', err.message);
-                            }
-                        }, 80);
-                    });
-                }
-
-                tab.loaded = true;
-            } catch (error) {
-                console.error(
-                    'Error loading tab content:',
-                    error.message
-                );
-                return;
+            if (tab.contentToLoad != null) {
+                tab.view.webContents.once('did-finish-load', () => {
+                    setTimeout(async () => {
+                        try {
+                            const escaped = JSON.stringify(tab.contentToLoad);
+                            await tab.view.webContents.executeJavaScript(`
+                                (function() {
+                                    const el = document.getElementById("autoSaveTextarea");
+                                    if (el) el.value = ${escaped};
+                                })();
+                            `);
+                            tab.contentToLoad = null;
+                        } catch (err) {
+                            console.error('Restore content failed:', err);
+                        }
+                    }, 80);
+                });
             }
+            tab.loaded = true;
         }
 
+        // Add new
         try {
             this.mainWindow.addBrowserView(tab.view);
             this.layoutActiveTab();
-        } catch (error) {
-            console.error(
-                'Error adding browser view:',
-                error.message
-            );
+        } catch (err) {
+            console.error('Add BrowserView failed:', err);
         }
     }
 
-    /**
-     * Adjusts the position and size of the active tab's BrowserView
-     * to fit within the main window's content area, below the tab bar.
-     */
     layoutActiveTab() {
-        if (!this.activeTab || this.isDestroyed) return;
+        if (!this.activeTab?.view || this.isDestroyed) return;
 
         try {
             const [width, height] = this.mainWindow.getContentSize();
             this.activeTab.view.setBounds({
                 x: 0,
-                y: 38,
+                y: TAB_BAR_HEIGHT,
                 width,
-                height: height - 38,
+                height: height - TAB_BAR_HEIGHT
             });
-        } catch (error) {
-            console.warn(
-                'Warning: Could not layout active tab:',
-                error.message
-            );
+        } catch (err) {
+            console.warn('Layout failed:', err);
         }
     }
 
-    /**
-     * Reorders the tabs array based on user drag-and-drop actions.
-     * @param {number} fromIndex - The original index of the tab being moved.
-     * @param {number} toIndex - The new index for the tab.
-     */
-    reorderTabs(fromIndex, toIndex) {
+    reorderTabs(from, to) {
         if (this.isDestroyed) return;
+        if (from < 0 || from >= this.tabs.length || to < 0 || to >= this.tabs.length || from === to) return;
 
-        // Validate indices
-        if (fromIndex < 0 || fromIndex >= this.tabs.length ||
-            toIndex < 0 || toIndex >= this.tabs.length) {
-            return;
-        }
-
-        // Move the tab from fromIndex to toIndex
-        const [movedTab] = this.tabs.splice(fromIndex, 1);
-        this.tabs.splice(
-            toIndex,
-            0,
-            movedTab
-        );
+        const [tab] = this.tabs.splice(from, 1);
+        this.tabs.splice(to, 0, tab);
     }
 
-    /**
-     * Closes a specific tab, destroys its BrowserView, and activates the next available tab.
-     * @param {object} tab - The tab object to close.
-     */
     closeTab(tab) {
-        if (this.isDestroyed || !tab) {
-            return;
-        }
+        if (this.isDestroyed || !tab) return;
+
+        const idx = this.tabs.indexOf(tab);
+        if (idx === -1) return;
 
         const wasActive = this.activeTab === tab;
-        const idx = this.tabs.indexOf(tab);
-        if (idx === -1) {
-            return;
-        }
 
+        // Remove from window
         if (tab.view) {
-            try {
-                this.mainWindow.removeBrowserView(tab.view);
-            } catch (error) {
-                console.warn(
-                    'Warning: Could not remove browser view:',
-                    error.message
-                );
-            }
-
-            try {
-                if (tab.view.webContents && !tab.view.webContents.isDestroyed()) {
-                    tab.view.webContents.destroy();
-                }
-            } catch (error) {
-                console.warn(
-                    'Warning: Could not destroy web contents:',
-                    error.message
-                );
-            }
-
-            // @ts-ignore - destroy method exists but not in types
-            if (typeof tab.view.destroy === 'function' && !tab.view.isDestroyed?.()) {
-                try {
-                    tab.view.destroy();
-                } catch (error) {
-                    console.warn(
-                        'Warning: Could not destroy browser view:',
-                        error.message
-                    );
-                }
-            }
-            // Clear reference
+            try { this.mainWindow.removeBrowserView(tab.view); } catch (_) {}
+            this._destroyView(tab.view);
             tab.view = null;
         }
 
         this.tabs.splice(idx, 1);
 
-        if (wasActive) {
-            const nextTab = this.tabs[idx] || this.tabs[idx - 1] || null;
-            if (nextTab) {
-                this.setActiveTab(nextTab);
-            } else {
-                this.activeTab = null;
-            }
+        if (wasActive && this.tabs.length > 0) {
+            const nextIdx = Math.min(idx, this.tabs.length - 1);
+            this.setActiveTab(this.tabs[nextIdx]);
+        } else if (wasActive) {
+            this.activeTab = null;
         }
     }
 
-    /**
-     * @returns {number} The current number of open tabs.
-     */
+    closeTabByIndex(index) {
+        if (index < 0 || index >= this.tabs.length) return;
+        this.closeTab(this.tabs[index]);
+    }
+
     getTabCount() {
         return this.tabs.length;
     }
 
-    /**
-     * @returns {object|null} The currently active tab object.
-     */
     getActiveTab() {
         return this.activeTab;
     }
 
-    /**
-     * @returns {Array<object>} A shallow copy of the array of all tab objects.
-     */
     getAllTabs() {
         return [...this.tabs];
     }
 
-    /**
-     * Closes all open tabs.
-     */
     closeAllTabs() {
-        if (this.isDestroyed) {
-            return;
-        }
-        const tabsToClose = [...this.tabs];
-
-        tabsToClose.forEach(tab => {
-            this.closeTab(tab);
-        });
+        if (this.isDestroyed) return;
+        [...this.tabs].forEach(tab => this.closeTab(tab));
     }
 
-    closeTabByIndex(index) {
-        if (this.isDestroyed) {
-            return;
-        }
-
-        if (index < 0 || index >= this.tabs.length) {
-            console.error(`Invalid index: ${index}`);
-            return;
-        }
-
-        const tab = this.tabs[index];
-        this.closeTab(tab);
-    }
-
-    /**
-     * Cleans up all resources used by the TabManager.
-     * Destroys all BrowserViews and removes event listeners to prevent memory leaks.
-     */
+    // === Cleanup ===
     destroy() {
+        if (this.isDestroyed) return;
         this.isDestroyed = true;
-        const tabsToDestroy = [...this.tabs];
 
-        tabsToDestroy.forEach(tab => {
-            try {
-                this.mainWindow.removeBrowserView(tab.view);
-            } catch (error) {
-                console.warn(
-                    'Warning: Could not remove browser view:',
-                    error.message
-                );
-            }
+        // Close all tabs
+        this.closeAllTabs();
 
-            try {
-                if (tab.view.webContents && !tab.view.webContents.isDestroyed()) {
-                    tab.view.webContents.destroy();
-                }
-            } catch (error) {
-                console.warn(
-                    'Warning: Could not destroy web contents:',
-                    error.message
-                );
-            }
+        // Remove listeners
+        this._removeWindowListeners();
 
-            // Destroy BrowserView
-            try {
-                if (typeof tab.view.destroy === 'function') {
-                    tab.view.destroy();
-                }
-            } catch (error) {
-                console.warn(
-                    'Warning: Cound not destroy browserView:',
-                    error.message
-                );
-            }
-
-            tab.view = null;
-        });
-
-        this.tabs = [];
-        this.activeTab = null;
-
-        if (this.mainWindow) {
-            this.mainWindow.removeListener('resize', this.resizeHandler);
-            this.mainWindow.removeListener(
-                'enter-full-screen',
-                this.enterFullScreenHandler
-            );
-            this.mainWindow.removeListener(
-                'leave-full-screen',
-                this.leaveFullScreenHandler
-            );
-        }
-
-        // Clear all references
+        // Clear refs
         this.mainWindow = null;
-        this.resizeHandler = null;
-        this.enterFullScreenHandler = null;
-        this.leaveFullScreenHandler = null;
+        this.activeTab = null;
+        this.tabs = [];
     }
 
-    /**
-     * @returns {boolean} True if the manager has been destroyed, false otherwise.
-     */
     isManagerDestroyed() {
         return this.isDestroyed;
     }

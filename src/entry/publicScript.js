@@ -1,16 +1,6 @@
 /*
     Renderer side (Frontend)
     All .html files will using this script here 
-    
-    The data in this file will be copied from
-    other files and will not be imported from
-    that file as it is used entirely in .html
-    and its location is independent of the
-    functions and methods immediately
-    independent. Therefore, any files that
-    already have native functions, such as
-    those already in place, will be considered
-    as additional files, such as `tabbar.html.`
 */
 
 let lastShortcutTime = 0;
@@ -19,14 +9,9 @@ let keyboardInitialized = false;
 let tabsInitialized = false;
 
 /**
- * Manages the tab bar UI in the renderer process. It creates, removes, and updates
- * tab elements based on data synced from the main process.
+ * Manages the tab bar UI in the renderer process.
  */
 class InlineTabManager {
-    /**
-     * @param {HTMLElement} tabbar The container element for the tabs.
-     * @param {HTMLElement} addBtn The button element for adding new tabs.
-     */
     constructor(tabbar, addBtn) {
         this.tabbar = tabbar;
         this.addBtn = addBtn;
@@ -37,14 +22,11 @@ class InlineTabManager {
         this.isSyncing = false;
         this.lastSyncData = null;
         this._addClickHandler = null;
+        this._addBtnAttached = false;
     }
 
     /**
      * Creates a single tab DOM element.
-     * @param {number} id The unique identifier for the tab.
-     * @param {string} title The title to display on the tab.
-     * @param {boolean} [isActive=false] Whether the tab should be marked as active.
-     * @returns {HTMLDivElement} The created tab element.
      */
     createTabElement(id, title, isActive = false) {
         const tab = document.createElement('div');
@@ -64,7 +46,7 @@ class InlineTabManager {
         tab.appendChild(titleSpan);
         tab.appendChild(closeBtn);
 
-        // Store bound functions for cleanup
+        // Event handlers with proper cleanup references
         const clickHandler = (e) => {
             if (e.target === closeBtn) return;
             const index = this.tabOrder.indexOf(id);
@@ -77,15 +59,15 @@ class InlineTabManager {
             e.stopPropagation();
             const index = this.tabOrder.indexOf(id);
             if (index !== -1 && window.electronAPI?.closeTab) {
-                if (window.electronAPI?.closeTab) {
-                    window.electronAPI.closeTab(index);
-                }
+                window.electronAPI.closeTab(index);
             }
         };
 
         // Store handlers for cleanup
-        tab._clickHandler = clickHandler;
-        tab._closeHandler = closeHandler;
+        tab._handlers = {
+            click: clickHandler,
+            close: closeHandler
+        };
 
         tab.addEventListener('click', clickHandler);
         closeBtn.addEventListener('click', closeHandler);
@@ -94,11 +76,7 @@ class InlineTabManager {
     }
 
     /**
-     * Synchronizes the tab bar UI with the state received from the main process.
-     * It clears the existing tabs and recreates them based on the new data to ensure consistency.
-     * @param {object} data The synchronization data from the main process.
-     * @param {Array<{title: string}>} data.tabs An array of tab objects.
-     * @param {number} data.activeIndex The index of the currently active tab.
+     * Efficiently updates tabs without complete recreation when possible
      */
     syncWithMainProcess(data) {
         if (!data || this.isSyncing) return;
@@ -118,41 +96,21 @@ class InlineTabManager {
         try {
             const { tabs, activeIndex } = data;
 
-            this.tabs.forEach((element) => {
-                if (element && element.parentNode) {
-                    element.remove();
-                }
-            });
-
-            this.tabs.clear();
-            this.tabOrder = [];
-            this.activeTabId = null;
-            this.nextId = 1;
-
-            // Create new tabs
+            // Validate input
             if (!Array.isArray(tabs) || tabs.length === 0) {
+                this.clearAllTabs();
                 this.isSyncing = false;
-                this.lastSyncData = null;
                 return;
             }
 
-            tabs.forEach((tabData, index) => {
-                if (!tabData || !tabData.title) return;
+            // Check if we can update existing tabs instead of recreating
+            if (this.canIncrementalUpdate(tabs, activeIndex)) {
+                this.incrementalUpdate(tabs, activeIndex);
+            } else {
+                this.fullUpdate(tabs, activeIndex);
+            }
 
-                const id = this.nextId++;
-                const isActive = index === activeIndex;
-                const tabElement = this.createTabElement(id, tabData.title, isActive);
-
-                this.tabbar.insertBefore(tabElement, this.addBtn);
-                this.tabs.set(id, tabElement);
-                this.tabOrder.push(id);
-
-                if (isActive) {
-                    this.activeTabId = id;
-                }
-            });
-
-            console.log(`Synced ${tabs?.length || 0} tabs from main process`);
+            console.log(`Synced ${tabs.length} tabs from main process`);
         } catch (error) {
             console.error('Error syncing tabs:', error);
         } finally {
@@ -161,13 +119,117 @@ class InlineTabManager {
     }
 
     /**
-     * Attach add button click handler to request a new tab from main process.
+     * Checks if we can update tabs incrementally
+     */
+    canIncrementalUpdate(tabs, activeIndex) {
+        if (this.tabs.size !== tabs.length) return false;
+        if (this.tabOrder.length !== tabs.length) return false;
+        
+        // Check if tab titles match existing tabs
+        for (let i = 0; i < tabs.length; i++) {
+            const tabId = this.tabOrder[i];
+            const existingTab = this.tabs.get(tabId);
+            if (!existingTab) return false;
+            
+            const titleSpan = existingTab.querySelector('.tab-title');
+            if (titleSpan && titleSpan.textContent !== tabs[i].title) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+
+    /**
+     * Updates tabs incrementally without complete recreation
+     */
+    incrementalUpdate(tabs, activeIndex) {
+        // Update active state
+        const newActiveTabId = this.tabOrder[activeIndex];
+        if (this.activeTabId !== newActiveTabId) {
+            // Deactivate current active tab
+            if (this.activeTabId) {
+                const currentActive = this.tabs.get(this.activeTabId);
+                if (currentActive) {
+                    currentActive.classList.remove('active');
+                }
+            }
+            
+            // Activate new tab
+            if (newActiveTabId) {
+                const newActive = this.tabs.get(newActiveTabId);
+                if (newActive) {
+                    newActive.classList.add('active');
+                }
+            }
+            
+            this.activeTabId = newActiveTabId;
+        }
+    }
+
+    /**
+     * Performs complete tab recreation when necessary
+     */
+    fullUpdate(tabs, activeIndex) {
+        this.clearAllTabs();
+
+        tabs.forEach((tabData, index) => {
+            if (!tabData || !tabData.title) return;
+
+            const id = this.nextId++;
+            const isActive = index === activeIndex;
+            const tabElement = this.createTabElement(id, tabData.title, isActive);
+
+            this.tabbar.insertBefore(tabElement, this.addBtn);
+            this.tabs.set(id, tabElement);
+            this.tabOrder.push(id);
+
+            if (isActive) {
+                this.activeTabId = id;
+            }
+        });
+    }
+
+    /**
+     * Clears all tabs with proper cleanup
+     */
+    clearAllTabs() {
+        this.tabs.forEach((element, id) => {
+            this.cleanupTabElement(element);
+        });
+        
+        this.tabs.clear();
+        this.tabOrder = [];
+        this.activeTabId = null;
+    }
+
+    /**
+     * Properly cleans up a single tab element
+     */
+    cleanupTabElement(element) {
+        if (!element) return;
+        
+        // Remove event listeners
+        if (element._handlers) {
+            element.removeEventListener('click', element._handlers.click);
+            const closeBtn = element.querySelector('.close');
+            if (closeBtn && element._handlers.close) {
+                closeBtn.removeEventListener('click', element._handlers.close);
+            }
+            delete element._handlers;
+        }
+        
+        // Remove from DOM
+        if (element.parentNode) {
+            element.remove();
+        }
+    }
+
+    /**
+     * Attach add button click handler
      */
     attachAddButton() {
-        if (!this.addBtn) return;
-
-        if (this._addBtnAttached) return;
-        this._addBtnAttached = true;
+        if (!this.addBtn || this._addBtnAttached) return;
 
         this._addClickHandler = () => {
             try {
@@ -179,77 +241,50 @@ class InlineTabManager {
                     console.warn('No API available to create a new tab');
                 }
             } catch (error) {
-                console.error(
-                    'Error in add button click handler:',
-                    error
-                );
+                console.error('Error in add button click handler:', error);
             }
         };
 
         try {
-            this.addBtn.addEventListener(
-                'click',
-                this._addClickHandler,
-                {
-                    passive: true
-                }
-            );
+            this.addBtn.addEventListener('click', this._addClickHandler, { passive: true });
+            this._addBtnAttached = true;
         } catch (error) {
-            console.error(
-                'Failed to attach add button listener:',
-                error
-            );
+            console.error('Failed to attach add button listener:', error);
         }
     }
 
     /**
-     * Remove add button handler when destroying the manager.
+     * Remove add button handler
      */
     detachAddButton() {
         if (this.addBtn && this._addClickHandler) {
             try {
-                this.addBtn.removeEventListener(
-                    'click',
-                    this._addClickHandler
-                );
+                this.addBtn.removeEventListener('click', this._addClickHandler);
             } catch (error) {
-                console.error(
-                    'Failed to detach add button listener:',
-                    error
-                );
+                console.error('Failed to detach add button listener:', error);
             } finally {
                 this._addClickHandler = null;
-                this._addBtnAttached = false; // reset flag
+                this._addBtnAttached = false;
             }
         }
     }
 
     /**
-     * Removes all tab elements from the DOM and clears internal state.
-     * Used for cleanup when the page is unloaded.
+     * Cleanup all resources
      */
     destroy() {
-        // detach add button handler if attached
-        if (typeof this.detachAddButton === 'function') {
-            this.detachAddButton();
-        }
-
-        this.tabs.forEach((element) => {
-            if (element && element.parentNode) {
-                element.remove();
-            }
-        });
-        this.tabs.clear();
-        this.tabOrder = [];
-        this.activeTabId = null;
+        this.detachAddButton();
+        this.clearAllTabs();
+        
+        this.tabbar = null;
+        this.addBtn = null;
     }
 }
 
 let tabManagerInstance = null;
 
 /**
- * Fetches the operating system identifier from the main process
- * and adds it as a class to the body element for OS-specific styling.
+ * Initialize OS detection
  */
 const initOS = async () => {
     if (typeof window.electronAPI === 'undefined') {
@@ -268,10 +303,13 @@ const initOS = async () => {
 }
 
 /**
- * Initializes the InlineTabManager instance for the current page.
- * @returns {InlineTabManager|null} The created instance or null if required elements are not found.
+ * Initialize tab manager instance
  */
 const initTabManager = () => {
+    if (tabManagerInstance) {
+        return tabManagerInstance;
+    }
+
     const tabbar = document.getElementById('tabbar');
     const addTabBtn = document.getElementById('addTab');
 
@@ -282,10 +320,7 @@ const initTabManager = () => {
 
     try {
         tabManagerInstance = new InlineTabManager(tabbar, addTabBtn);
-        // Attach add button handler so clicking creates a new tab via main process
-        if (typeof tabManagerInstance.attachAddButton === 'function') {
-            tabManagerInstance.attachAddButton();
-        }
+        tabManagerInstance.attachAddButton();
         return tabManagerInstance;
     } catch (error) {
         console.error('Failed to initialize TabManager:', error);
@@ -294,9 +329,7 @@ const initTabManager = () => {
 }
 
 /**
- * Sets up the tab synchronization system. It initializes the tab manager,
- * registers a listener for 'tabs-sync' events from the main process,
- * and requests the initial tab state.
+ * Initialize tab synchronization
  */
 const initTabsSync = () => {
     if (typeof window.electronAPI === 'undefined') {
@@ -305,52 +338,49 @@ const initTabsSync = () => {
     }
 
     if (tabsInitialized) {
-        console.warn('Tabs sync already initialized');
         return;
     }
 
-    // Initialize TabManager first
+    // Initialize TabManager if needed
     if (!tabManagerInstance) {
         initTabManager();
     }
 
     // Listen for tabs sync from main process
-    window.electronAPI.onTabsSync((tabsData) => {
-        updateTabsUI(tabsData.tabs, tabsData.activeTabIndex);
-    });
+    if (window.electronAPI.onTabsSync) {
+        window.electronAPI.onTabsSync((tabsData) => {
+            updateTabsUI(tabsData.tabs, tabsData.activeTabIndex);
+        });
+    }
 
     // Request initial tabs sync
-    window.electronAPI.requestTabsSync();
+    if (window.electronAPI.requestTabsSync) {
+        window.electronAPI.requestTabsSync();
+    }
+    
     tabsInitialized = true;
 }
 
 /**
- * Updates the tab bar UI by passing the synchronized data to the TabManager instance.
- * @param {Array<object>} tabs An array of tab data objects.
- * @param {number} activeIndex The index of the active tab.
+ * Update tabs UI with new data
  */
 const updateTabsUI = (tabs, activeIndex) => {
     if (!tabManagerInstance) {
-        console.warn('TabManager not initialized');
         initTabManager();
     }
 
     if (tabManagerInstance) {
-        // Sync with TabManager
         tabManagerInstance.syncWithMainProcess({
-            tabs: tabs.map(tab => ({
+            tabs: Array.isArray(tabs) ? tabs.map(tab => ({
                 title: tab.title || 'Untitled'
-            })),
-            activeIndex: activeIndex
+            })) : [],
+            activeIndex: typeof activeIndex === 'number' ? activeIndex : 0
         });
     }
-
 }
 
 /**
- * Initializes global keyboard shortcuts for tab management.
- * This function should be called on pages that need to respond to shortcuts,
- * like the main content view (`index.html`).
+ * Initialize keyboard shortcuts
  */
 const initKeyboardShortcuts = () => {
     if (typeof window.electronAPI === 'undefined') {
@@ -359,14 +389,9 @@ const initKeyboardShortcuts = () => {
     }
 
     if (keyboardInitialized) {
-        console.warn('Keyboard shortcuts already initialized');
         return;
     }
 
-    /**
-     * Throttles shortcut execution to prevent rapid firing.
-     * @returns {boolean} True if the shortcut can be executed, false otherwise.
-     */
     const canExecuteShortcut = () => {
         const now = Date.now();
         if (now - lastShortcutTime < shortcutThrottle) {
@@ -376,105 +401,90 @@ const initKeyboardShortcuts = () => {
         return true;
     };
 
-    document.addEventListener('keydown', (e) => {
-        // (key repeat)
-        if (e.repeat) {
-            return;
-        };
+    const keyHandler = (e) => {
+        if (e.repeat) return;
 
         const isMac = document.body.classList.contains('darwin');
         const modifier = isMac ? e.metaKey : e.ctrlKey;
 
-        // Ctrl/Cmd + T - New Tab
-        if (modifier && e.code === 'KeyT') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
+        // Define shortcut handlers
+        const shortcuts = {
+            'KeyT': () => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (canExecuteShortcut()) {
+                    window.electronAPI.sendShortcut({ type: 'new-tab' });
+                }
+            },
+            'KeyW': () => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (canExecuteShortcut()) {
+                    window.electronAPI.sendShortcut({ type: 'close-tab' });
+                }
+            },
+            'Tab': () => {
+                if (e.ctrlKey && !e.shiftKey) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (canExecuteShortcut()) {
+                        window.electronAPI.sendShortcut({ type: 'next-tab' });
+                    }
+                } else if (e.ctrlKey && e.shiftKey) {
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    if (canExecuteShortcut()) {
+                        window.electronAPI.sendShortcut({ type: 'prev-tab' });
+                    }
+                }
+            },
+            'Digit1': () => handleNumberShortcut(0),
+            'Digit2': () => handleNumberShortcut(1),
+            'Digit3': () => handleNumberShortcut(2),
+            'Digit4': () => handleNumberShortcut(3),
+            'Digit5': () => handleNumberShortcut(4),
+            'Digit6': () => handleNumberShortcut(5),
+            'Digit7': () => handleNumberShortcut(6),
+            'Digit8': () => handleNumberShortcut(7),
+            'Digit9': () => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (canExecuteShortcut()) {
+                    window.electronAPI.sendShortcut({ type: 'switch-to-last' });
+                }
+            },
+            'KeyS': () => {
+                e.preventDefault();
+                e.stopImmediatePropagation();
+                if (canExecuteShortcut()) {
+                    saveCurrentTabsState();
+                }
             }
-            window.electronAPI.sendShortcut({ type: 'new-tab' });
-            return;
-        }
+        };
 
-        // Ctrl/Cmd + W - Close Current Tab
-        if (modifier && e.code === 'KeyW') {
+        const handleNumberShortcut = (index) => {
             e.preventDefault();
             e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
+            if (canExecuteShortcut()) {
+                window.electronAPI.sendShortcut({
+                    type: 'switch-to-index',
+                    index
+                });
             }
-            window.electronAPI.sendShortcut({ type: 'close-tab' });
-            return;
+        };
+
+        // Execute shortcut if modifier is pressed and key matches
+        if (modifier && shortcuts[e.code]) {
+            shortcuts[e.code]();
         }
+    };
 
-        // Ctrl + Tab - Next Tab
-        if (e.ctrlKey && e.key === 'Tab' && !e.shiftKey) {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
-            }
-            window.electronAPI.sendShortcut({ type: 'next-tab' });
-            return;
-        }
-
-        // Ctrl + Shift + Tab - Previous Tab
-        if (e.ctrlKey && e.shiftKey && e.key === 'Tab') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
-            };
-            window.electronAPI.sendShortcut({ type: 'prev-tab' });
-            return;
-        }
-
-        // Ctrl/Cmd + 1-8 - Switch to specific tab
-        if (modifier && e.key >= '1' && e.key <= '8') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
-            };
-            const index = parseInt(e.key) - 1;
-            window.electronAPI.sendShortcut({
-                type: 'switch-to-index',
-                index
-            });
-            return;
-        }
-
-        // Ctrl/Cmd + 9 - Switch to last tab
-        if (modifier && e.key === '9') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return
-            };
-
-            window.electronAPI.sendShortcut({ type: 'switch-to-last' });
-            return;
-        }
-
-        // Ctrl/Cmd + S - Save tabs to storage (new shortcut)
-        if (modifier && e.code === 'KeyS') {
-            e.preventDefault();
-            e.stopImmediatePropagation();
-            if (!canExecuteShortcut()) {
-                return;
-            }
-
-            saveCurrentTabsState();
-            return;
-        }
-    }, true);
-
+    document.addEventListener('keydown', keyHandler, true);
     keyboardInitialized = true;
 }
 
 /**
- * Triggers a request to the main process to save the current state of all tabs.
- * This is typically called via a shortcut (Ctrl+S).
+ * Save current tabs state
  */
 const saveCurrentTabsState = async () => {
     if (typeof window.electronAPI?.saveTabs !== 'function') {
@@ -495,14 +505,12 @@ const saveCurrentTabsState = async () => {
 }
 
 /**
- * Manually triggers a request to load tab data from storage.
- * Primarily used for debugging.
- * @returns {Promise<Array<object>>} A promise that resolves with the loaded tab data.
+ * Load tabs from storage
  */
 const loadTabsFromStorage = async () => {
     if (typeof window.electronAPI?.loadTabs !== 'function') {
         console.warn('loadTabs API not available');
-        return;
+        return [];
     }
 
     try {
@@ -520,14 +528,12 @@ const loadTabsFromStorage = async () => {
 }
 
 /**
- * Requests the file path of the tab storage file from the main process.
- * Primarily used for debugging.
- * @returns {Promise<string|null>} A promise that resolves with the storage path.
+ * Get storage info
  */
 const getStorageInfo = async () => {
     if (typeof window.electronAPI?.getStoragePath !== 'function') {
         console.warn('getStoragePath API not available');
-        return;
+        return null;
     }
 
     try {
@@ -545,8 +551,7 @@ const getStorageInfo = async () => {
 }
 
 /**
- * Sends a request to the main process to clear all saved tab data from storage.
- * Primarily used for debugging.
+ * Clear saved tabs
  */
 const clearSavedTabs = async () => {
     if (typeof window.electronAPI?.clearTabs !== 'function') {
@@ -567,8 +572,7 @@ const clearSavedTabs = async () => {
 }
 
 /**
- * Manually requests a full tab state sync from the main process.
- * Primarily used for debugging.
+ * Manual sync tabs
  */
 const manualSyncTabs = () => {
     if (typeof window.electronAPI?.requestTabsSync === 'function') {
@@ -576,10 +580,9 @@ const manualSyncTabs = () => {
     }
 }
 
-// Cleanup on page unload to prevent memory leaks.
+// Cleanup on page unload
 window.addEventListener('beforeunload', () => {
-    // Cleanup TabManager
-    if (tabManagerInstance && typeof tabManagerInstance.destroy === 'function') {
+    if (tabManagerInstance) {
         tabManagerInstance.destroy();
         tabManagerInstance = null;
     }
@@ -589,13 +592,14 @@ window.addEventListener('beforeunload', () => {
     lastShortcutTime = 0;
 });
 
-// Start all initialization
+// Initialize on DOM ready
 window.addEventListener('DOMContentLoaded', () => {
     initOS();
     initKeyboardShortcuts();
     initTabsSync();
 });
 
+// Export public API
 window.tabsManager = {
     saveCurrentTabsState,
     loadTabsFromStorage,

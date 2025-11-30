@@ -61,8 +61,9 @@ export const createWindow = async () => {
 
     // 6. Setup lifecycle handlers
     setupInputHandlers(mainWindow, tabManager);
-    const handleClose = setupCloseHandler(mainWindow, tabManager, tabStorage, ipcManager);
-    setupCleanup(mainWindow, tabChangeListener, ipcManager, tabManager, handleClose);
+    mainWindow.on('closed', () => {});
+
+    setupCleanup(mainWindow, tabChangeListener, ipcManager, tabManager);
 
     // 7. Setup post-init operations
     setupPostInitOperations(

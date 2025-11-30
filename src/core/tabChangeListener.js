@@ -33,6 +33,7 @@ export class TabChangeListener {
 
         methodsToOverride.forEach(methodName => {
             if (typeof this.tabManager[methodName] === 'function') {
+                console.log(`Overriding method: ${methodName}`);
                 this.overrideMethod(methodName);
             }
         });
@@ -42,14 +43,12 @@ export class TabChangeListener {
         // Store original method
         this.originalMethods.set(
             methodName,
-            this.tabManager[
-                methodName
-            ].bind(
-                this.tabManager
-            )
+            this.tabManager[methodName].bind(this.tabManager)
         );
 
         this.tabManager[methodName] = (...args) => {
+            console.log(`Method called: ${methodName}`); 
+
             const result = this.originalMethods.get(methodName)(...args);
 
             if (this.syncTimeout) {
@@ -58,6 +57,7 @@ export class TabChangeListener {
 
             this.syncTimeout = setTimeout(() => {
                 if (this.ipcManager && typeof this.ipcManager.syncTabsToAllWindows === 'function') {
+                    console.log(`Syncing tabs after ${methodName}`);
                     this.ipcManager.syncTabsToAllWindows();
                 }
                 this.syncTimeout = null;
@@ -69,9 +69,7 @@ export class TabChangeListener {
 
     restoreOriginalMethods() {
         this.originalMethods.forEach((originalMethod, methodName) => {
-            this.tabManager[
-                methodName
-            ] = originalMethod;
+            this.tabManager[methodName] = originalMethod;
         });
         this.originalMethods.clear();
     }

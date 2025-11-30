@@ -46,19 +46,13 @@ export const setupCloseHandler = (mainWindow, tabManager, tabStorage, ipcManager
  * @param {TabChangeListener} tabChangeListener
  * @param {IpcManager} ipcManager
  * @param {TabManager} tabManager
- * @param {Function} handleClose
  */
-export const setupCleanup = (mainWindow, tabChangeListener, ipcManager, tabManager, handleClose) => {
+export const setupCleanup = (mainWindow, tabChangeListener, ipcManager, tabManager) => {
     mainWindow.once('closed', () => {
         tabChangeListener.stop();
         unregisterTabShortcuts();
         ipcManager.cleanup();
         tabManager.destroy();
-        
-        mainWindow.removeListener(
-            'close',
-            handleClose
-        );
     });
 };
 

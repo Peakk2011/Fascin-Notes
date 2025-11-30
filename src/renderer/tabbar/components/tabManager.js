@@ -5,9 +5,6 @@ import { TabValidator } from './tabs/tabValidator.js';
 
 /**
  * Manages the entire lifecycle of tabs within the tab bar UI.
- * This class is responsible for creating, switching, closing, reordering,
- * and synchronizing tabs with the main process. It delegates specific tasks
- * to specialized components like IdManager, TabIPCBridge, and TabValidator.
  */
 export class TabManager {
     constructor(tabbar, addBtn) {
@@ -27,88 +24,74 @@ export class TabManager {
         this.ipcBridge = new TabIPCBridge();
         this.validator = new TabValidator();
 
-        // Handler to cleanup
-        this.handleAddClick = null;
-        this.unsubscribeIPC = null;
+        // Event handlers
+        this._addClickHandler = null;
+        this._unsubscribeIPC = null;
 
-        this.isInitialSync = false;
         this.init();
     }
 
     /**
-     * Initializes the TabManager by setting up IPC communication and event listeners.
+     * Initializes the TabManager
      */
     init() {
+        if (this.isDestroyed) return;
+        
         this.setupIPC();
         this.setupEventListeners();
     }
 
     /**
-     * Sets up the IPC bridge to listen for tab state updates from the main process.
-     * @private
+     * Sets up IPC communication
      */
     setupIPC() {
-        this.ipcBridge.init();
+        if (!this.ipcBridge || this.isDestroyed) return;
 
-        // Store unsubscribe function (if ipcBridge supported)
-        this.unsubscribeIPC = this.ipcBridge.onTabsUpdated((data) => {
-            if (!this.isDestroyed) {
-                this.syncWithMainProcess(data);
-            }
-        });
+        try {
+            this.ipcBridge.init();
+            this._unsubscribeIPC = this.ipcBridge.onTabsUpdated((data) => {
+                if (!this.isDestroyed) {
+                    this.syncWithMainProcess(data);
+                }
+            });
+        } catch (error) {
+            console.error('Failed to setup IPC:', error);
+        }
     }
 
     /**
-     * Attaches event listeners, primarily the click handler for the 'add tab' button.
-     * @private
+     * Sets up event listeners
      */
     setupEventListeners() {
-        if (!this.addBtn) return;
+        if (!this.addBtn || this.isDestroyed) return;
 
-        if (this._addClickBound) {
-            this.addBtn.removeEventListener('click', this._addClickBound);
+        // Remove existing listener if any
+        if (this._addClickHandler) {
+            this.addBtn.removeEventListener('click', this._addClickHandler);
         }
 
-        this._addClickBound = (event) => {
+        this._addClickHandler = (event) => {
             if (this.isDestroyed) return;
 
             try {
-                if (this._clickLock) return;
-                this._clickLock = true;
-                setTimeout(() => (this._clickLock = false), 80);
-
-                // IPC available → Fire at main process
+                // Use IPC if available
                 if (this.ipcBridge?.isAvailable) {
                     this.ipcBridge.notifyNewTab('New Tab');
                     return;
                 }
-            } catch (err) {
-                console.error('IPC new-tab error:', err);
-                // continue to local fallback
-            }
-
-            // fallback local
-            try {
+                
+                // Fallback to local creation
                 this.createTab();
-            } catch (err) {
-                console.error('Local tab creation failed:', err);
+            } catch (error) {
+                console.error('Error creating new tab:', error);
             }
         };
 
-        this.addBtn.addEventListener(
-            'click',
-            this._addClickBound, 
-            {
-                passive: true
-            }
-        );
+        this.addBtn.addEventListener('click', this._addClickHandler, { passive: true });
     }
 
     /**
-     * Creates a new tab, adds it to the DOM and internal state, and notifies the main process.
-     * @param {string} [title='New Tab'] - The initial title for the new tab.
-     * @param {boolean} [setActive=true] - Whether to make the new tab active immediately.
-     * @returns {number|null} The ID of the newly created tab, or null if creation failed (e.g., tab limit reached).
+     * Creates a new tab
      */
     createTab(title = 'New Tab', setActive = true) {
         if (this.isDestroyed || !this.tabbar) {
@@ -116,12 +99,9 @@ export class TabManager {
         }
 
         // Validate
-        const canCreate = this.validator.canCreateTab(
-            this.tabOrder.length
-        );
-
+        const canCreate = this.validator.canCreateTab(this.tabOrder.length);
         if (!canCreate.valid) {
-            alert(canCreate.reason);
+            console.warn(canCreate.reason);
             return null;
         }
 
@@ -130,217 +110,189 @@ export class TabManager {
 
         // Create tab
         const id = this.idManager.getNewId();
-        const tab = new Tab(
-            id,
-            sanitizedTitle
-        );
+        const tab = new Tab(id, sanitizedTitle);
 
         // Setup callbacks
         tab.onClose = (id) => this.closeTab(id);
         tab.onClick = (id) => this.switchTab(id);
 
         // Add to DOM and state
-        this.tabbar.insertBefore(
-            tab.getElement(),
-            this.addBtn
-        );
-
-        this.tabs.set(
-            id,
-            tab
-        );
-
+        this.tabbar.insertBefore(tab.getElement(), this.addBtn);
+        this.tabs.set(id, tab);
         this.tabOrder.push(id);
 
         if (setActive) {
             this.switchTab(id);
         }
 
-        // Notify IPC
-        this.ipcBridge.notifyNewTab(sanitizedTitle);
+        // Notify main process
+        if (this.ipcBridge) {
+            this.ipcBridge.notifyNewTab(sanitizedTitle);
+        }
 
         return id;
     }
 
     /**
-     * Switches the active tab to the one specified by the ID.
-     * @param {number} id - The ID of the tab to activate.
+     * Switches the active tab
      */
     switchTab(id) {
         if (this.isDestroyed || !this.tabs.has(id) || this.activeTabId === id) {
             return;
         }
 
+        // Deactivate all tabs
+        this.tabs.forEach(tab => tab.setActive(false));
+
+        // Activate target tab
+        const tab = this.tabs.get(id);
+        tab.setActive(true);
+        this.activeTabId = id;
+
+        // Notify main process
+        const index = this.tabOrder.indexOf(id);
+        if (index !== -1 && this.ipcBridge) {
+            this.ipcBridge.notifySwitchTab(index);
+        }
+
+        // Dispatch content ready event
+        this.dispatchTabContentReady(id);
+    }
+
+    /**
+     * Dispatches tab content ready event
+     */
+    dispatchTabContentReady(tabId) {
         try {
-            this.tabs.forEach(
-                tab => tab.setActive(false)
-            );
+            const tab = this.tabs.get(tabId);
+            if (!tab) return;
 
-            const tab = this.tabs.get(id);
-            tab.setActive(true);
-            this.activeTabId = id;
-
-            const index = this.tabOrder.indexOf(id);
-            if (index !== -1) {
-                this.ipcBridge.notifySwitchTab(index);
-                try {
-                    const activeTab = this.tabs.get(id);
-                    const content = (activeTab && activeTab.contentToLoad) ? activeTab.contentToLoad : '';
-
-                    window.dispatchEvent(new CustomEvent('tab-content-ready', {
-                        detail: {
-                            tabId: (activeTab && activeTab.remoteId) ? activeTab.remoteId : id,
-                            content
-                        }
-                    }));
-                } catch (e) {
-                    // ignore
+            window.dispatchEvent(new CustomEvent('tab-content-ready', {
+                detail: {
+                    tabId: tab.remoteId || tabId,
+                    content: tab.contentToLoad || ''
                 }
-            }
+            }));
         } catch (error) {
-            console.error(
-                'Error switching tab:',
-                error
-            );
+            console.error('Error dispatching tab content event:', error);
         }
     }
 
     /**
-     * Closes a tab specified by its ID, removes it from the DOM, and cleans up its resources.
-     * It also handles activating the next appropriate tab.
-     * @param {number} id - The ID of the tab to close.
+     * Closes a tab
      */
     async closeTab(id) {
         if (this.isDestroyed || !this.tabs.has(id)) {
             return;
         }
 
+        const index = this.tabOrder.indexOf(id);
+        const tab = this.tabs.get(id);
+
         try {
-            const index = this.tabOrder.indexOf(id);
-            const tab = this.tabs.get(id);
-
             await tab.close();
-
             this.destroyTab(tab);
 
             this.tabs.delete(id);
             this.tabOrder.splice(index, 1);
             this.idManager.releaseId(id);
 
+            // Handle app closure if no tabs left
             if (this.tabOrder.length === 0) {
-                this.ipcBridge.notifyCloseApp();
+                if (this.ipcBridge) {
+                    this.ipcBridge.notifyCloseApp();
+                }
                 return;
             }
 
-            const nextIndex = Math.min(
-                index,
-                this.tabOrder.length - 1
-            );
-
+            // Switch to next appropriate tab
+            const nextIndex = Math.min(index, this.tabOrder.length - 1);
             if (nextIndex >= 0) {
                 this.switchTab(this.tabOrder[nextIndex]);
             }
 
-            this.ipcBridge.notifyCloseTab(index);
+            // Notify main process
+            if (this.ipcBridge) {
+                this.ipcBridge.notifyCloseTab(index);
+            }
         } catch (error) {
-            console.error(
-                'Error closing tab:',
-                error
-            );
+            console.error('Error closing tab:', error);
         }
     }
 
     /**
-     * A helper method to fully destroy a tab object and its associated DOM element.
-     * @param {Tab} tab - The tab instance to destroy.
-     * @private
+     * Destroys a single tab
      */
     destroyTab(tab) {
         if (!tab) return;
 
         try {
-            // Clear callbacks
+            // Clear callbacks to prevent memory leaks
             tab.onClose = null;
             tab.onClick = null;
 
+            // Call tab's destroy method if available
             if (typeof tab.destroy === 'function') {
                 tab.destroy();
             }
 
+            // Remove from DOM
             const element = tab.getElement();
             if (element && element.parentNode) {
                 element.remove();
             }
         } catch (error) {
-            console.error(
-                'Error destroying tab:',
-                error
-            );
+            console.error('Error destroying tab:', error);
         }
     }
 
     /**
-     * Reorders a tab from one index to another, updating the internal state and the DOM.
-     * @param {number} fromIndex - The original index of the tab.
-     * @param {number} toIndex - The new index for the tab.
+     * Reorders tabs
      */
     reorderTabs(fromIndex, toIndex) {
         if (this.isDestroyed) return;
 
-        const isValid = this.validator.validateReorder(
-            fromIndex,
-            toIndex,
-            this.tabOrder.length
-        );
-
+        const isValid = this.validator.validateReorder(fromIndex, toIndex, this.tabOrder.length);
         if (!isValid) return;
 
         try {
-            // Reorder in state
             const id = this.tabOrder[fromIndex];
+            
+            // Update internal order
             this.tabOrder.splice(fromIndex, 1);
             this.tabOrder.splice(toIndex, 0, id);
 
+            // Update DOM order
             const tab = this.tabs.get(id);
-            let nextElement;
+            let referenceElement = this.addBtn;
 
             if (toIndex < this.tabOrder.length - 1) {
                 const nextTabId = this.tabOrder[toIndex + 1];
                 const nextTab = this.tabs.get(nextTabId);
-                nextElement = nextTab ? nextTab.getElement() : null;
-            } else {
-                nextElement = this.addBtn;
+                if (nextTab) {
+                    referenceElement = nextTab.getElement();
+                }
             }
 
-            if (this.tabbar && nextElement) {
-                this.tabbar.insertBefore(tab.getElement(), nextElement);
+            if (this.tabbar && tab) {
+                this.tabbar.insertBefore(tab.getElement(), referenceElement);
+                tab.addMergeAnimation();
             }
 
-            tab.addMergeAnimation();
-
-            // Notify IPC
-            this.ipcBridge.notifyReorderTabs(fromIndex, toIndex);
+            // Notify main process
+            if (this.ipcBridge) {
+                this.ipcBridge.notifyReorderTabs(fromIndex, toIndex);
+            }
         } catch (error) {
-            console.error(
-                'Error reordering tabs:',
-                error
-            );
+            console.error('Error reordering tabs:', error);
         }
     }
 
     /**
-     * Synchronizes the tab bar's state with the authoritative state received from the main process.
-     * This method clears all existing tabs and rebuilds them based on the provided data,
-     * ensuring the UI is consistent with the application's backend state.
-     * @param {object} data - The synchronization data from the main process.
+     * Synchronizes with main process state
      */
     syncWithMainProcess(data) {
-        if (this.isDestroyed || !data) {
-            return;
-        }
-
-        if (this.isSyncing) {
-            // console.warn('Already syncing');
+        if (this.isDestroyed || !data || this.isSyncing) {
             return;
         }
 
@@ -350,7 +302,6 @@ export class TabManager {
         });
 
         if (this.lastSyncData === newSyncData) {
-            // console.log('Sync data unchanged');
             return;
         }
 
@@ -360,99 +311,59 @@ export class TabManager {
         try {
             const { tabs, activeIndex } = data;
 
+            // Clear existing tabs
             this.cleanupAllTabs();
 
+            // Create new tabs from sync data
             if (Array.isArray(tabs)) {
-                tabs.forEach((tabData) => {
-                    if (!tabData || !tabData.title) {
-                        return;
-                    }
+                tabs.forEach((tabData, index) => {
+                    if (!tabData?.title) return;
 
-                    const canCreate = this.validator.canCreateTab(
-                        this.tabOrder.length
-                    );
+                    // Check tab limit
+                    const canCreate = this.validator.canCreateTab(this.tabOrder.length);
                     if (!canCreate.valid) {
-                        console.warn(
-                            `Tab limit reached. Skipping tab: ${tabData.title}`
-                        );
+                        console.warn(`Tab limit reached. Skipping tab: ${tabData.title}`);
                         return;
                     }
 
                     const id = this.idManager.getNewId();
+                    const tab = new Tab(id, tabData.title);
 
-                    const tab = new Tab(
-                        id,
-                        tabData.title
-                    );
+                    // Store additional data
+                    tab.contentToLoad = tabData.content || '';
+                    tab.remoteId = tabData.id || null;
 
-                    try {
-                        tab.contentToLoad = tabData.content || '';
-                        // store the main-process stable id for mapping
-                        tab.remoteId = tabData.id || null;
-                    } catch (e) {
-                        tab.contentToLoad = '';
-                    }
-
+                    // Setup callbacks
                     tab.onClose = (id) => this.closeTab(id);
                     tab.onClick = (id) => this.switchTab(id);
 
-                    this.tabbar.insertBefore(
-                        tab.getElement(),
-                        this.addBtn
-                    );
-
-                    this.tabs.set(
-                        id,
-                        tab
-                    );
-
-                    try {
-                        window.dispatchEvent(new CustomEvent('tab-content-ready', {
-                            detail: {
-                                // prefer stable remote id when available
-                                tabId: tab.remoteId || id,
-                                content: tab.contentToLoad || ''
-                            }
-                        }));
-                    } catch (e) {
-                        // ignore
-                    }
-
+                    // Add to DOM and state
+                    this.tabbar.insertBefore(tab.getElement(), this.addBtn);
+                    this.tabs.set(id, tab);
                     this.tabOrder.push(id);
+
+                    // Dispatch content event for all tabs during sync
+                    this.dispatchTabContentReady(id);
                 });
 
+                // Set active tab
                 if (activeIndex >= 0 && activeIndex < this.tabOrder.length) {
-                    this.switchTab(
-                        this.tabOrder[
-                        activeIndex
-                        ]
-                    );
+                    this.switchTab(this.tabOrder[activeIndex]);
                 } else if (this.tabOrder.length > 0) {
                     this.switchTab(this.tabOrder[0]);
                 }
             }
 
-            if (!this.isInitialSync) {
-                this.isInitialSync = true;
-                console.log('Initial sync completed');
-            }
-
-            console.log(
-                `Synced ${tabs?.length || 0} tabs from main process`
-            );
+            console.log(`Synced ${tabs?.length || 0} tabs from main process`);
         } catch (error) {
-            console.error(
-                'Error syncing with main process:',
-                error
-            );
+            console.error('Error syncing with main process:', error);
         } finally {
             this.isSyncing = false;
         }
     }
 
     /**
-     * Destroys all currently managed tabs and clears the internal state.
-     * @private
+     * Cleans up all tabs
      */
     cleanupAllTabs() {
         try {
@@ -464,17 +375,12 @@ export class TabManager {
             this.tabOrder = [];
             this.activeTabId = null;
         } catch (error) {
-            console.error(
-                'Error cleaning up tabs:',
-                error
-            );
+            console.error('Error cleaning up tabs:', error);
         }
     }
 
     /**
-     * Updates the title of a specific tab.
-     * @param {number} id - The ID of the tab to update.
-     * @param {string} newTitle - The new title for the tab.
+     * Updates tab title
      */
     updateTabTitle(id, newTitle) {
         if (this.isDestroyed || !this.tabs.has(id)) {
@@ -486,46 +392,15 @@ export class TabManager {
         tab.updateTitle(validation.sanitized || newTitle);
     }
 
-    /**
-     * @returns {Array<number>} A copy of the array representing the current order of tab IDs.
-     */
-    getTabOrder() {
-        return [...this.tabOrder];
-    }
+    // Getters
+    getTabOrder() { return [...this.tabOrder]; }
+    getActiveTabId() { return this.activeTabId; }
+    hasTab(id) { return this.tabs.has(id); }
+    getTabCount() { return this.tabOrder.length; }
 
-    /**
-     * @returns {number|null} The ID of the currently active tab.
-     */
-    getActiveTabId() {
-        return this.activeTabId;
-    }
-
-    /**
-     * Checks if a tab with the given ID exists.
-     * @param {number} id - The tab ID to check.
-     * @returns {boolean} True if the tab exists, false otherwise.
-     */
-    hasTab(id) {
-        return this.tabs.has(id);
-    }
-
-    /**
-     * @returns {number} The total number of open tabs.
-     */
-    getTabCount() {
-        return this.tabOrder.length;
-    }
-
-    /**
-     * Retrieves information about a specific tab.
-     * @param {number} id - The ID of the tab.
-     * @returns {object|null} An object with tab info (id, title, active status, index) or null if not found.
-     */
     getTabInfo(id) {
         const tab = this.tabs.get(id);
-        if (!tab) {
-            return null;
-        }
+        if (!tab) return null;
 
         return {
             ...tab.getInfo(),
@@ -534,55 +409,44 @@ export class TabManager {
     }
 
     /**
-     * Completely destroys the TabManager instance, cleaning up all tabs,
-     * event listeners, and IPC subscriptions to prevent memory leaks.
+     * Completely destroys the TabManager
      */
     destroy() {
+        if (this.isDestroyed) return;
+        
         this.isDestroyed = true;
 
         try {
             // Remove IPC listener
-            if (typeof this.unsubscribeIPC === 'function') {
-                this.unsubscribeIPC();
+            if (typeof this._unsubscribeIPC === 'function') {
+                this._unsubscribeIPC();
             }
 
-            // Remove add button listener
-            if (this.addBtn && this.handleAddClick) {
-                this.addBtn.removeEventListener('click', this.handleAddClick);
+            // Remove event listeners
+            if (this.addBtn && this._addClickHandler) {
+                this.addBtn.removeEventListener('click', this._addClickHandler);
             }
 
-            // Clean up tabs
+            // Clean up all tabs
             this.cleanupAllTabs();
 
-            // Reset components
-            if (this.idManager && typeof this.idManager.reset === 'function') {
-                this.idManager.reset();
+            // Destroy components
+            if (this.idManager && typeof this.idManager.destroy === 'function') {
+                this.idManager.destroy();
             }
 
-            // Destroy IPC bridge
             if (this.ipcBridge && typeof this.ipcBridge.destroy === 'function') {
                 this.ipcBridge.destroy();
             }
 
-            // Clear all reference
-            this.tabs = null;
-            this.tabOrder = null;
-            this.activeTabId = null;
+            // Clear references
             this.tabbar = null;
             this.addBtn = null;
-            this.handleAddClick = null;
-            this.unsubscribeIPC = null;
-            this.idManager = null;
-            this.ipcBridge = null;
-            this.validator = null;
-            this.lastSyncData = null;
-            this.isSyncing = false;
-
+            this._addClickHandler = null;
+            this._unsubscribeIPC = null;
+            
         } catch (error) {
-            console.error(
-                'Error during destruction:',
-                error
-            );
+            console.error('Error during TabManager destruction:', error);
         }
     }
 }
