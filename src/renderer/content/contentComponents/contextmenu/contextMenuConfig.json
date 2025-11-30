@@ -111,18 +111,6 @@
           "label": "to Italian",
           "command": "translate",
           "value": "italian"
-        },
-        {
-          "id": "translate-vi",
-          "label": "to Vietnamese",
-          "command": "translate",
-          "value": "vietnamese"
-        },
-        {
-          "id": "translate-id",
-          "label": "to Indonesian",
-          "command": "translate",
-          "value": "indonesian"
         }
       ]
     },

@@ -9,6 +9,7 @@ import { createContextMenu } from './contentComponents/contextmenu/contextMenu.j
 import { initRichEditor } from './rich.js';
 import { translate } from '../../api/translate/translator.js';
 import '../../api/cursor-behavior.js';
+import { keyMap } from '../scripts/editor/keymap.js';
 
 export const Page = {
     // Cache instances
@@ -114,6 +115,11 @@ export const Page = {
                 throw new Error('Failed to initialize note features');
             }
 
+            const editorElement = document.getElementById(config.textareaId);
+            if (!editorElement) {
+                throw new Error(`Editor element with ID "${config.textareaId}" not found.`);
+            }
+
             // Initialize rich editor component
             const rich = initRichEditor({
                 editorId: config.textareaId,
@@ -168,8 +174,51 @@ export const Page = {
                 }
             });
 
+            // Initialize Keyboard Shortcuts
+            const modelFind = await this._getModelFind();
+
+            const editorCallbacks = {
+                /**
+                 * Called on Ctrl/Cmd + S
+                 * @param {string} content - Current HTML content of the editor
+                 */
+                onSave: (content) => {
+                    // TODO: Implement actual save logic, e.g., noteAPI.save(content);
+                    const saveIndicator = document.getElementById(config.saveIndicatorId);
+                    if (saveIndicator) {
+                        saveIndicator.textContent = 'Saved!';
+                        saveIndicator.classList.add('show');
+                        setTimeout(() => saveIndicator.classList.remove('show'), 2000);
+                    }
+                },
+                /**
+                 * Called on Ctrl/Cmd + F
+                 */
+                onSearch: () => {
+                    // Assuming modelFind has a method to show itself
+                    if (modelFind && typeof modelFind.show === 'function') {
+                        modelFind.show();
+                    } else {
+                        console.warn('modelFind.show() is not available.');
+                    }
+                },
+                /**
+                 * Called on Ctrl/Cmd + H
+                 */
+                onReplace: () => {
+                    // Assuming modelFind handles replace as well
+                    if (modelFind && typeof modelFind.show === 'function') {
+                        modelFind.show(true); // Pass true to open replace tab
+                    } else {
+                        console.warn('modelFind.show(true) is not available.');
+                    }
+                }
+            };
+
+            const cleanupKeyMap = keyMap(editorElement, editorCallbacks);
+
             // Selection Menu
-            const editor = document.getElementById(config.textareaId);
+            const editor = editorElement;
             const selectionMenu = document.getElementById('selection-menu');
 
             if (editor && selectionMenu) {
@@ -365,34 +414,11 @@ export const Page = {
                 };
             }
 
-            // Initialize model find component (use cached instance)
-            const modelFind = await this._getModelFind();
             modelFind.init({ pageConfig: config, noteAPI });
 
             // Initialize context menu component
             const contextMenu = await this._getContextMenu();
             contextMenu.init({ pageConfig: config, noteAPI });
-
-            // (async () => {
-            //     try {
-            //         console.log("Running translation tests...");
-            //         // Thai translation
-            //         const thai = await translate.thai("Hello world");
-            //         console.log("Thai:", thai);
-
-            //         // English translation
-            //         const english = await translate.english("สวัสดีครับ");
-            //         console.log("English:", english);
-
-            //         // Japanese translation
-            //         const japanese = await translate.japanese("Good morning");
-            //         console.log("Japanese:", japanese);
-
-            //         console.log("Translation tests finished.");
-            //     } catch (error) {
-            //         console.error("Translation test failed:", error);
-            //     }
-            // })();
 
             return noteAPI;
         } catch (error) {
