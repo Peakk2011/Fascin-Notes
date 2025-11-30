@@ -1,4 +1,5 @@
-<h1>Fascinate Note</h1>
+<img src="./assets/icons/icon.png" width="150">
+<h1>Fascinate Notes</h1>
 
 <div>
     <a href="https://www.electronjs.org/">
@@ -11,5 +12,5 @@
         <img src="https://img.shields.io/badge/Contributions-Welcome-brightgreen?style=for-the-badge" alt="Contributions">
     </a>
 </div>
-
+<br>
 Feel the idea before you write it.
