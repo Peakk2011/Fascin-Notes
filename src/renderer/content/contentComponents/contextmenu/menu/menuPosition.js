@@ -47,8 +47,19 @@ export const showMenu = ({ event, contextMenu, stateManager, config, MENU_OFFSET
         const { innerWidth, innerHeight } = window;
         const menuDimensions = contextMenu.getBoundingClientRect();
 
-        let top = mouseY;
-        let left = mouseX;
+        // Find the first menu item to align the mouse cursor with it
+        const firstItem = contextMenu.querySelector('[role="menuitem"]');
+        let itemOffsetY = 0;
+        let itemOffsetX = 0;
+
+        if (firstItem) {
+            const itemRect = firstItem.getBoundingClientRect();
+            itemOffsetY = itemRect.top - menuDimensions.top + (itemRect.height / 2);
+            itemOffsetX = 20;
+        }
+
+        let top = mouseY - itemOffsetY;
+        let left = mouseX - itemOffsetX;
 
         // Adjust position to prevent overflow
         if (mouseY + menuDimensions.height > innerHeight) {
