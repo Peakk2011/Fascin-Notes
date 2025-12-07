@@ -60,7 +60,7 @@
 
 :root {
     /* Theme Colors */
-    --theme-bg: hsl(0, 0%, 8%);
+    --theme-bg: hsl(0, 0%, 6.2%);
     --theme-fg: #ffffff;
     --theme-accent: hsl(120, 7%, 85%);
     --theme-accent-text: hsl(120, 7%, 10%);
@@ -73,7 +73,7 @@
     --hover-color: #2a2a2a;
     --theme-border: hsl(0, 0%, 20%);
 
-    --theme-model: hsla(0, 0%, 8.5%, 0.820);
+    --theme-model: hsl(0, 0%, 7.5%);
     --theme-model-border: hsl(0, 0%, 20%);
 
     --font-primary: "Manrope", "Leelawadee UI", system-ui, sans-serif;
@@ -89,7 +89,7 @@
     --ResetMargin: 0;
     --ResetBoxSizing: border-box;
     /* Buttons */
-    --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
+    --PrimaryButtonsColors: hsl(0, 0%, 10%);
 
     --ctx-menu-blur: 8px;
     --ctx-menu-radius: 6px;
@@ -97,7 +97,7 @@
     --ctx-menu-padding: 8px;
     --ctx-menu-min-width: 190px;
 
-    --ctx-menu-bg: hsla(0, 0%, 8.5%, 0.820);
+    --ctx-menu-bg: hsla(0, 0%, 7.5%, 0.820);
     --ctx-menu-hover: hsl(0, 0%, 17.5%);
     --ctx-menu-active: hsl(0, 0%, 5%);
     --ctx-menu-text: hsl(0, 0%, 89%);
@@ -189,12 +189,12 @@
 /* (default) */
 @media (prefers-color-scheme: dark) {
     :root {
-        --theme-bg: hsl(0, 0%, 8%);
+        --theme-bg: hsl(0, 0%, 6.2%);
         --theme-fg: #ffffff;
         --theme-accent: hsl(120, 7%, 85%);
         --hover-color: #2a2a2a;
         --theme-border: hsl(0, 0%, 20%);
-        --PrimaryButtonsColors: hsl(0, 0%, 11.25%);
+        --PrimaryButtonsColors: hsl(0, 0%, 10%);
         color-scheme: dark;
         background: var(--theme-bg);
         color: var(--theme-fg);
@@ -246,7 +246,7 @@ html {
 body {
     color: var(--theme-fg);
     line-height: var(--line-height);
-    background-color: rgba(0, 0, 0, 0.055);
+    background-color: rgba(0, 0, 0, 0.150);
 }
 
 @media (prefers-reduced-motion: reduce) {

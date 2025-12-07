@@ -125,6 +125,7 @@ body {
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
+    line-height: 1;
 }
 
 .tab .close {
@@ -162,8 +163,14 @@ body.darwin #tabbar {
     padding-right: 2.5rem;
 }
 
+/* max-width: calc((100% - 60px) / 1); */
+
 /* body.win32 .tab {
-    max-width: calc((100% - 60px) / 1); For full screeb tabs
+    height: 100%;
+    border-radius: 0;
+    border-top: none;
+    padding: 0 0.8rem;
+    font-size: 13px;
 } */
 
 body.win32 #tabbar {
@@ -177,12 +184,12 @@ body.win32 #tabbar {
 @keyframes tab-merge-in {
     from {
         opacity: 0;
-        /* transform: translateY(30px); */
+        transform: translateY(30px);
     }
 
     to {
         opacity: 1;
-        /* transform: translateY(0); */
+        transform: translateY(0);
     }
 }
 

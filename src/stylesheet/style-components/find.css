@@ -1,18 +1,18 @@
 .modal {
-    position: fixed; 
-    z-index: 1000; 
+    position: fixed;
+    z-index: 1000;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    overflow: auto; 
+    overflow: auto;
     background-color: transparent;
     justify-content: center;
     align-items: flex-start;
 
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
+    transition: opacity 150ms ease-in-out, visibility 220ms ease-in-out;
 }
 
 .modal.visible {
@@ -24,13 +24,14 @@
     background-color: var(--theme-model);
     color: var(--theme-fg);
     border: 1.5px solid var(--theme-model-border);
+    box-shadow: var(--ctx-menu-shadow);
     margin: auto;
     border-radius: 10px;
     width: 70%;
     max-width: 300px;
-    
+
     transform: scale(0.95) translateY(-20px);
-    transition: transform 0.2s ease-in-out;
+    transition: transform 220ms ease-in-out;
 }
 
 .modal.visible .modal-content {
@@ -63,7 +64,7 @@
 }
 
 .modal-body textarea {
-    width: 100%;   
+    width: 100%;
     padding: 1.35rem 1.25rem;
     height: 260px;
     background-color: transparent;
@@ -88,8 +89,8 @@
 #find-status-text {
     position: absolute;
     left: 1.5rem;
-    bottom: 1.85rem;  
-    font-family: var(--font-display);   
+    bottom: 1.85rem;
+    font-family: var(--font-display);
 }
 
 .modal-body button {
@@ -99,6 +100,7 @@
     bottom: 1.5rem;
     background-color: var(--PrimaryButtonsColors);
     outline: solid 1px var(--theme-border);
+    box-shadow: var(--ctx-menu-shadow);
     border: none;
     border-radius: 100vmax;
     cursor: pointer;
@@ -110,4 +112,33 @@
 .modal-body button:hover {
     background-color: var(--theme-accent);
     color: #000;
+}
+
+@media (max-width: 380px) {
+    .modal-content {
+        width: 100%;
+        max-width: 100%;
+        height: 100vh;
+
+        border: none;
+        box-shadow: none;
+        border-radius: 0px;
+    }
+
+    .modal {
+        background-color: var(--theme-model);
+    }
+
+    .modal-body textarea {
+        margin-top: 1.5rem;
+        height: 100vh;
+    }
+
+    .close-button {
+        margin-top: 1.5rem;
+    }
+
+    .modal-body button {
+        bottom: 2rem;
+    }
 }
