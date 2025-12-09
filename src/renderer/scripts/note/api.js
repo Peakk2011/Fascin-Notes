@@ -1,17 +1,14 @@
 import { noteFeaturesConfig } from './noteConfig.js';
 import {
-    activeTabId,
-    tabsData,
     currentFontSize,
-    setActiveTabId,
     clearEventListeners,
     autoSaveTimeout,
     addEventListenerTracker
 } from './state.js';
 import {
     createSetStatus,
-    createLoadTabData,
-    createSaveTabData,
+    createLoadData,
+    createSaveData,
     createZoomHandlers,
     createTriggerAutoSave,
     setupEventListeners
@@ -48,10 +45,10 @@ export const noteFeatures = async (
 
         // Create handlers
         const setStatus = createSetStatus(els);
-        const loadTabData = createLoadTabData(els, setStatus);
-        const saveTabData = createSaveTabData(els, setStatus);
-        const { zoomIn, zoomOut, resetZoom } = createZoomHandlers(els, saveTabData);
-        const triggerAutoSave = createTriggerAutoSave(setStatus, saveTabData);
+        const loadData = createLoadData(els, setStatus);
+        const saveData = createSaveData(els, setStatus);
+        const { zoomIn, zoomOut, resetZoom } = createZoomHandlers(els, saveData);
+        const triggerAutoSave = createTriggerAutoSave(setStatus, saveData);
 
         // Setup event listeners
         setupEventListeners(
@@ -62,62 +59,17 @@ export const noteFeatures = async (
             resetZoom
         );
 
-        // Electron or browser fallback
-        if (window.electronAPI && window.electronAPI.onLoadTabData) {
-            try {
-                window.electronAPI.onLoadTabData(async (tabId, data) => {
-                    try {
-                        tabsData[tabId] = data || {
-                            text: '',
-                            fontSize: noteFeaturesConfig.defaultFontSize
-                        };
-                        await loadTabData(tabId);
-                    } catch (error) {
-                        console.error('Error loading Electron tab:', error);
-                    }
-                });
-            } catch (error) {
-                console.error('Error setting up Electron API:', error);
-            }
-        } else {
-            // Defer initial tab load for browser fallback
-            queueMicrotask(() => {
-                loadTabData('default-tab').catch(error => {
-                    console.error('Error loading default tab:', error);
-                });
+        // Defer initial data load
+        queueMicrotask(() => {
+            loadData().catch(error => {
+                console.error('Error loading default data:', error);
             });
-        }
-
-        // Listen for tab content provided by the tab manager
-        const tabContentHandler = async (e) => {
-            try {
-                const detail = e && e.detail ? e.detail : null;
-                if (!detail) return;
-                const tabId = detail.tabId;
-                const content = detail.content || '';
-
-                // Store into in-memory tabsData keyed by tabId
-                tabsData[tabId] = {
-                    text: content,
-                    fontSize: noteFeaturesConfig.defaultFontSize
-                };
-
-                // If this is the currently active tab, load it into the textarea
-                if (tabId === activeTabId) {
-                    await loadTabData(tabId);
-                }
-            } catch (err) {
-                console.error('Error handling tab-content-ready event:', err);
-            }
-        };
-
-        window.addEventListener('tab-content-ready', tabContentHandler);
-        addEventListenerTracker(window, 'tab-content-ready', tabContentHandler);
+        });
 
         // Before unload handler
         const beforeUnloadHandler = async () => {
             try {
-                await saveTabData();
+                await saveData();
             } catch (error) {
                 console.error('Error saving before unload:', error);
             }
@@ -142,13 +94,11 @@ export const noteFeatures = async (
 
         // Return API
         return {
-            loadTabData,
-            saveTabData,
+            loadData,
+            saveData,
             zoomIn,
             zoomOut,
             resetZoom,
-            getActiveTabId: () => activeTabId,
-            getTabsData: () => tabsData,
             getCurrentFontSize: () => currentFontSize,
             cleanup
         };

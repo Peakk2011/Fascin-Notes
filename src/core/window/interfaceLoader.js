@@ -1,24 +1,22 @@
-import { getCachedEncodedHTML, getCachedTabbarPath } from '../preloadAssets.js';
+import path from 'node:path';
 import { safeLog } from '../../utils/safeLogger.js';
+import { app } from 'electron';
 
 /**
  * Loads the main interface HTML into the window
- * Uses pre-cached HTML from memory for fast startup
  * @async
  * @param {BrowserWindow} mainWindow
  * @returns {Promise<void>}
  */
 export const loadInterface = async (mainWindow) => {
     const startTime = Date.now();
-    const encodedHtml = getCachedEncodedHTML();
-    const tabbarPath = getCachedTabbarPath();
-
-    const loadPromise = mainWindow.loadURL(
-        `data:text/html;charset=UTF-8,${encodedHtml}`,
-        {
-            baseURLForDataURL: `file://${tabbarPath}`
-        }
+    const indexPath = path.join(
+        app.getAppPath(),
+        'src',
+        'index.html'
     );
+
+    const loadPromise = mainWindow.loadFile(indexPath);
 
     safeLog(`loadInterface() called: ${Date.now() - startTime}ms`);
     return loadPromise;

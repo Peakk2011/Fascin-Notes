@@ -12,8 +12,6 @@ Thanks for everyone to taking the time to contribute this project that keeps a h
 ## 2. Code Style
 
 - The naming conventions in Fascinate Note (Fasin-Note) must be the same as the original. For example, variable names and functions are case sensitive, except for model files, which are case sensitive. For example, if the file is a `.css` or `.html` file, it is case sensitive.
-- Fascinate Note (Fasin-Note) contains both the main process (electron) and the renderer (frontend). Each file has a folder that identifies the type of file. However, be careful with certain points in the file. The `tabManager.js` file in `src/core/tabManager.js` and the Renderer file in `src/renderer/tabbar/components/tabManager.js` have the same filename.
-
 ## 3. Performance
 
 - If you're testing something in the main process that could impact performance, please benchmark it for us to see how fast it is.

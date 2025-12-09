@@ -9,9 +9,10 @@ let cachedTabbarPath = null;
 export const preloadAssets = async () => {
     const startTime = Date.now();
 
+    // Path to load HTML
     if (!cachedTabbarHtml) {
         cachedTabbarPath = resolvePath(
-            '../renderer/tabbar/tabbar.html'
+            '../index.html'
         );
         cachedTabbarHtml = await fs.readFile(
             cachedTabbarPath,

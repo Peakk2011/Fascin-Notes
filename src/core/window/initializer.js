@@ -1,9 +1,5 @@
 import { BrowserWindow } from "electron";
-import { TabManager } from '../tabManager.js';
 import { IpcManager } from '../ipcManager.js';
-import { TabStorage } from '../tabStorage.js';
-import { TabChangeListener } from '../tabChangeListener.js';
-import { registerTabShortcuts } from '../registerTabShortcuts.js';
 import { getWindowConfig } from '../../config/windowConfig.js';
 import { OpenDevTools } from '../devtools.js';
 
@@ -28,46 +24,15 @@ export const initializeWindow = () => {
 /**
  * Creates and connects all core managers
  * @param {BrowserWindow} mainWindow
- * @returns {{ 
- *      tabManager: TabManager,
- *      tabStorage: TabStorage,
+ * @returns {{
  *      ipcManager: IpcManager
  * }}
  */
 export const initializeCoreManagers = (mainWindow) => {
-    const tabManager = new TabManager(mainWindow);
-    const tabStorage = new TabStorage();
     const ipcManager = new IpcManager();
-
-    ipcManager.setTabManager(tabManager);
     ipcManager.init();
 
     return {
-        tabManager,
-        tabStorage,
         ipcManager
     };
-};
-
-/**
- * Sets up tab change listener and keyboard shortcuts
- * @param {BrowserWindow} mainWindow
- * @param {TabManager} tabManager
- * @param {IpcManager} ipcManager
- * @returns {TabChangeListener}
- */
-export const setupTabChangeListener = (mainWindow, tabManager, ipcManager) => {
-    const tabChangeListener = new TabChangeListener(
-        tabManager,
-        ipcManager
-    );
-
-    tabChangeListener.start();
-    
-    registerTabShortcuts(
-        mainWindow,
-        tabManager
-    );
-
-    return tabChangeListener;
 };

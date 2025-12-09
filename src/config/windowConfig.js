@@ -14,8 +14,8 @@ export const getWindowConfig = () => {
     const config = osConfig[OS] || osConfig.linux;
 
     const windowSizeConfig = {
-        width: 510,
-        height: 570,
+        width: 480,
+        height: 600,
         min: {
             width: 400,
             height: 400
@@ -37,13 +37,13 @@ export const getWindowConfig = () => {
             hasShadow: true,
         }),
         ...(OS === 'win32' && {
-            backgroundMaterial: 'mica',
-            titleBarStyle: 'hidden',
-            titleBarOverlay: {
-                color: '#00000000',
-                symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
-                height: 36 + 1
-            }
+            // backgroundMaterial: 'mica',
+            titleBarStyle: 'default',
+            // titleBarOverlay: {
+            //     color: '#00000000',
+            //     symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
+            //     height: 36 + 1
+            // }
         }),
         webPreferences: {
             preload: resolvePath('../preload.js'),

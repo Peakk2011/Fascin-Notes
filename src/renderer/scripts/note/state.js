@@ -1,6 +1,6 @@
 /**
  * @file Manages the local state for the note editor view.
- * This includes data for individual tabs, UI state like font size,
+ * This includes data for individual UI state like font size,
  * and mechanisms for tracking and cleaning up resources like timeouts and event listeners.
  */
 
@@ -22,21 +22,10 @@ export let currentFontSize = noteFeaturesConfig.defaultFontSize;
  */
 export let lastMainProcessSaveTime = 0;
 /**
- * The ID of the currently active tab being edited.
- * @type {string | null}
- */
-export let activeTabId = null;
-/**
  * An array to track all active event listeners for easy cleanup.
  * @type {Array<{element: HTMLElement|Window, event: string, handler: function}>}
  */
 export let eventListeners = [];
-/**
- * An in-memory cache of tab data, keyed by tab ID.
- * Each entry contains the text content and font size for a tab.
- * @type {Object<string, {text: string, fontSize: number}>}
- */
-export const tabsData = {};
 
 /**
  * Updates the auto-save timeout ID.
@@ -52,14 +41,6 @@ export const setAutoSaveTimeout = (timeout) => {
  */
 export const setCurrentFontSize = (size) => {
     currentFontSize = size;
-};
-
-/**
- * Sets the ID of the currently active tab.
- * @param {string} id - The unique identifier of the tab.
- */
-export const setActiveTabId = (id) => {
-    activeTabId = id;
 };
 
 /**
