@@ -2,6 +2,7 @@ import { createStatusIndicatorMarkup } from '../pageComponents/statusIndicator.j
 import { createZoomControlsMarkup } from '../pageComponents/zoomControls.js';
 import { createExportMenuMarkup } from '../pageComponents/exportMenu.js';
 import { createSelectionMenuMarkup } from '../pageComponents/selectionMenu.js';
+import { createTitlebarMarkup } from '../pageComponents/titlebar.js';
 
 /**
  * Generates the complete HTML markup for the page editor.
@@ -26,14 +27,17 @@ import { createSelectionMenuMarkup } from '../pageComponents/selectionMenu.js';
  * @param {string} modelFind.markups - HTML string for model-related elements.
  * @param {Object} contextMenu - Object containing additional markup for context menu.
  * @param {string} contextMenu.markups - HTML string for context menu elements.
+ * @param {?Object} titlebar - Object containing titlebar markup, or null.
+ * @param {string} titlebar.markups - HTML string for the titlebar.
  * @returns {string} - HTML markup string representing the full page editor.
  *
  * @example
- * const pageHTML = createPageMarkup(config, modelFind, contextMenu);
+ * const pageHTML = createPageMarkup(config, modelFind, contextMenu, titlebar);
  * document.body.innerHTML = pageHTML;
  */
-export const createPageMarkup = (config, modelFind, contextMenu) => {
+export const createPageMarkup = (config, modelFind, contextMenu, titlebar) => {
     return `
+        ${titlebar ? titlebar.markups : ''}
         ${createStatusIndicatorMarkup(config)}
         
         <div class="${config.textareaContainerClass}">

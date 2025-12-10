@@ -56,7 +56,6 @@ export const initStatusIndicator = (config) => {
 
     return {
         showSaved() {
-            element.textContent = 'Saved!';
             element.classList.add('show');
 
             setTimeout(() => {

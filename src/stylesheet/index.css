@@ -7,6 +7,30 @@
     License: MIT
 */
 
+/* Electorn Titlebar */
+
+.application-titlebar {
+    -webkit-app-region: drag;
+    height: var(--titlebar-height);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* position: fixed;
+    top: 0;
+    left: 0; */
+    z-index: var(--titlebar-z-index);
+}
+
+.application-titlebar span {
+    font-family: var(--font-display);
+    font-size: var(--titlebar-font-size);
+    font-weight: var(--titlebar-font-weight);
+    color: var(--theme-fg);
+    
+    display: none;
+}
+
 .status {
     font-size: var(--status-font-size);
     display: flex;
