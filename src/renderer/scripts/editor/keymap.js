@@ -25,23 +25,58 @@ export const handleKeydown = (e, editor, callbacks = {}) => {
     const isModKey = e.ctrlKey || e.metaKey;
 
     try {
-        // 1. Tab / Shift+Tab for indentation
+        // Tab / Shift+Tab for indentation
         if (e.key === 'Tab') {
             e.preventDefault();
+
+            const selection = window.getSelection();
+
+            // Validate selection exists
+            if (!selection || !selection.rangeCount) {
+                console.warn('[Keymap] No valid selection for indentation');
+                return;
+            }
 
             try {
                 if (e.shiftKey) {
                     // Decrease indentation
-                    document.execCommand('outdent');
+                    const success = document.execCommand('outdent');
+                    if (!success) {
+                        console.warn('[Keymap] Outdent command not supported or failed');
+                    }
                 } else {
-                    // Increase indentation
-                    document.execCommand('indent');
+                    // Insert 4 spaces for tab
+                    const range = selection.getRangeAt(0);
+
+                    // Use non-breaking spaces for better consistency
+                    const indent = document.createTextNode('\u00A0\u00A0\u00A0\u00A0');
+
+                    // Delete any selected content first
+                    range.deleteContents();
+                    range.insertNode(indent);
+
+                    // Move cursor after the inserted spaces
+                    range.setStartAfter(indent);
+                    range.setEndAfter(indent);
+                    range.collapse(false);
+
+                    selection.removeAllRanges();
+                    selection.addRange(range);
                 }
             } catch (error) {
-                console.error(
-                    '[Keymap] Indent/Outdent failed:',
-                    error
-                );
+                console.error('[Keymap] Indent/Outdent operation failed:', {
+                    operation: e.shiftKey ? 'outdent' : 'indent',
+                    error: error.message
+                });
+
+                // Attempt to restore selection state
+                try {
+                    const range = selection.getRangeAt(0);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } catch (restoreError) {
+                    console.error('[Keymap] Failed to restore selection:', restoreError.message);
+                }
             }
             return;
         }
@@ -49,7 +84,7 @@ export const handleKeydown = (e, editor, callbacks = {}) => {
         if (isModKey) {
             // 2. Clipboard operations
             // Use e.code to support all keyboard layouts
-            
+
             if (e.code === 'KeyC' || e.code === 'KeyX' || e.code === 'KeyV') {
                 return;
             }
@@ -199,13 +234,13 @@ export const handleKeydown = (e, editor, callbacks = {}) => {
                         range.insertNode(br);
                         range.setStartAfter(br);
                         range.collapse(true);
-                        
+
                         selection.removeAllRanges();
                         selection.addRange(range);
                     } else {
                         // Ctrl/Cmd + Enter (Insert line below)
                         const currentNode = range.startContainer;
-                        
+
                         const parent = currentNode.nodeType === Node.TEXT_NODE
                             ? currentNode.parentNode
                             : currentNode;
@@ -221,7 +256,7 @@ export const handleKeydown = (e, editor, callbacks = {}) => {
                             node.parentNode.insertBefore(br, node.nextSibling);
                             range.setStartAfter(br);
                             range.collapse(true);
-                            
+
                             selection.removeAllRanges();
                             selection.addRange(range);
                         } else {

@@ -7,7 +7,24 @@ import { translate } from '../../../../../api/translate/translator.js';
 const handlePaste = async ({ textarea, recordState }) => {
     try {
         const text = await navigator.clipboard.readText();
-        document.execCommand('insertText', false, text);
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+
+        const range = selection.getRangeAt(0);
+        range.deleteContents();
+
+        const pasteSpan = document.createElement('span');
+        pasteSpan.classList.add('fade-in-paste');
+        pasteSpan.textContent = text;
+
+        range.insertNode(pasteSpan);
+
+        // Move cursor to the end of the pasted text
+        range.setStartAfter(pasteSpan);
+        range.collapse(true);
+        selection.removeAllRanges();
+        selection.addRange(range);
+
     } catch (error) {
         console.warn(
             '[ContextMenu] clipboard.readText failed, falling back to execCommand paste',

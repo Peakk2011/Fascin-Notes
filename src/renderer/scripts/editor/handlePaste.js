@@ -38,11 +38,20 @@ export const handlePaste = (e, editor) => {
     const wrapper = document.createElement('div');
     wrapper.innerHTML = content;
 
-    while (wrapper.firstChild) {
-        fragment.appendChild(wrapper.firstChild);
-    }
+    const pastedSpan = document.createElement('span');
+    pastedSpan.style.opacity = '0';
+    pastedSpan.classList.add('pasted-content');
 
+    while (wrapper.firstChild) {
+        pastedSpan.appendChild(wrapper.firstChild);
+    }
+    
+    fragment.appendChild(pastedSpan);
     range.insertNode(fragment);
+
+    setTimeout(() => {
+        pastedSpan.style.opacity = '1'; 
+    }, 20);
 
     // Move cursor to end
     range.collapse(false);

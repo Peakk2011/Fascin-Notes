@@ -4,15 +4,29 @@
     "networkCheckUrl": "https://www.google.com/favicon.ico",
     "networkCheckTimeout": 3000,
     "apis": {
+        "googleTranslate": {
+            "baseUrl": "https://translate.googleapis.com/translate_a/single",
+            "enabled": true,
+            "requiresInternet": true,
+            "priority": 1
+        },
+        "mymemory": {
+            "baseUrl": "https://api.mymemory.translated.net/get",
+            "enabled": true,
+            "requiresInternet": true,
+            "priority": 2
+        },
         "lingva": {
             "baseUrl": "https://lingva.ml/api/v1",
             "enabled": true,
-            "requiresInternet": true
+            "requiresInternet": true,
+            "priority": 3
         },
         "libretranslate": {
             "baseUrl": "https://libretranslate.de/translate",
             "enabled": true,
-            "requiresInternet": false
+            "requiresInternet": false,
+            "priority": 4
         }
     }
 }

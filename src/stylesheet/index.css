@@ -38,7 +38,6 @@
 }
 
 @keyframes pulse {
-
     0%,
     100% {
         opacity: 1;
@@ -64,6 +63,8 @@
     transition: border-color 0.2s, box-shadow 0.2s;
     overflow-y: scroll;
     letter-spacing: var(--editor-letter-spacing);
+    caret-color: var(--theme-fg); /* Ensure a default */
+    animation: caret-pulse 1.5s infinite alternate; /* Apply animation */
 }
 
 .editable-div div {
@@ -431,5 +432,19 @@
 
     .zoom-btn {
         display: none;
+    }
+}
+
+
+/* Cursor Animation */
+@keyframes caret-pulse {
+    0% {
+        caret-color: var(--theme-fg); /* Normal foreground color */
+    }
+    50% {
+        caret-color: var(--theme-accent); /* Accent color */
+    }
+    100% {
+        caret-color: var(--theme-fg);
     }
 }
