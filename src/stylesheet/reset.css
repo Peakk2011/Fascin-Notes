@@ -111,8 +111,8 @@
     /* Status Variables */
     --status-font-size: 14px;
     --status-gap: 6px;
-    --status-top: 20.5px;
-    --status-right: 18px;
+    --status-top: 14px;
+    --status-right: 16px;
     --status-z-index: 2;
 
     /* Dot Variables */
@@ -179,6 +179,12 @@
     --selection-btn-font-size: 14px;
     --selection-btn-icon-size: 16px;
     --selection-btn-transition: 100ms cubic-bezier(0.2, 0.0, 0, 1.0);
+
+    /* Titlebar */
+    --titlebar-height: 40px;
+    --titlebar-z-index: 10;
+    --titlebar-font-size: 14px;
+    --titlebar-font-weight: 400;
 }
 
 ::selection {

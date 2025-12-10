@@ -35,6 +35,10 @@ export const getWindowConfig = () => {
             vibrancy: 'sidebar',
             visualEffectState: 'active',
             hasShadow: true,
+            trafficLightPosition: {
+                x: 16,
+                y: 14
+            }
         }),
         ...(OS === 'win32' && {
             // backgroundMaterial: 'mica',

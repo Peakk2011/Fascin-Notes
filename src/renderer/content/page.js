@@ -5,6 +5,7 @@ import { createModelFind } from './contentComponents/model/modelFind.js';
 import { createContextMenu } from './contentComponents/contextmenu/contextMenu.js';
 import { getConfig } from './pageServices/configService.js';
 import { createPageMarkup } from './pages/pageMarkup.js';
+import { createTitlebar } from './pageComponents/titlebar.js';
 import { initEditorPage } from './pages/editorPage.js';
 import '../../api/cursor-behavior.js';
 
@@ -12,6 +13,7 @@ export const Page = {
     // Cache instances
     _modelFindCache: null,
     _contextMenuCache: null,
+    _titlebarCache: null,
 
     async _getModelFind() {
         if (!this._modelFindCache) {
@@ -27,14 +29,26 @@ export const Page = {
         return this._contextMenuCache;  
     },
 
+    async _getTitlebar() {
+        // Only create titlebar in Electron environment
+        if (window.electronAPI) {
+            if (!this._titlebarCache) {
+                this._titlebarCache = await createTitlebar();
+            }
+            return this._titlebarCache;
+        }
+        return null; // Return null if not in Electron
+    },
+
     async markups() {
-        const [config, modelFind, contextMenu] = await Promise.all([
+        const [config, modelFind, contextMenu, titlebar] = await Promise.all([
             getConfig(),
             this._getModelFind(),
-            this._getContextMenu()
+            this._getContextMenu(),
+            this._getTitlebar()
         ]);
 
-        return createPageMarkup(config, modelFind, contextMenu);
+        return createPageMarkup(config, modelFind, contextMenu, titlebar);
     },
 
     async init() {
@@ -51,7 +65,12 @@ export const Page = {
                 throw new Error('Failed to initialize note features');
             }
 
-            const result = await initEditorPage(config, noteAPI, modelFind, contextMenu);
+            const result = await initEditorPage(
+                config,
+                noteAPI,
+                modelFind,
+                contextMenu
+            );
 
             return result.noteAPI;
         } catch (error) {
