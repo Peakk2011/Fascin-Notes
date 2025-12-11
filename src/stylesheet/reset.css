@@ -7,102 +7,349 @@
     License: MIT
 */
 
+/**
+ * @reset List and Link Styles
+ * @description Removes default list styles and link underlines
+ * @selectors li, a
+ */
 :where(li, a) {
     text-decoration: none;
     list-style: none;
 }
 
+/**
+ * @reset Scrollbar
+ * @description Hides webkit scrollbar completely
+ * @browser Webkit/Blink only
+ */
 ::-webkit-scrollbar {
     width: 0px;
     background: transparent;
 }
 
+/**
+ * @font-face General Sans
+ * @description Variable font with weight range 100-900
+ * @format WOFF2 with variations support
+ * @weight 100-900
+ */
 @font-face {
     font-family: 'General Sans';
     src: url('../../assets/typefaces/GeneralSans-Variable.woff2') format('woff2-variations');
-
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
+/**
+ * @font-face Manrope
+ * @description Variable font with weight range 100-900
+ * @format TrueType with variations support
+ * @weight 100-900
+ */
 @font-face {
     font-family: 'Manrope';
     src: url('../../assets/typefaces/Manrope-VariableFont_wght.ttf') format('truetype-variations');
-
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
+/**
+ * @font-face Inter Tight
+ * @description Variable font with weight range 100-900
+ * @format TrueType with variations support
+ * @weight 100-900
+ */
 @font-face {
     font-family: 'Inter Tight';
     src: url('../../assets/typefaces/InterTight-VariableFont_wght.ttf') format('truetype-variations');
-
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
+/**
+ * @font-face Anuphan
+ * @description Thai display variable font with weight range 100-900
+ * @format TrueType with variations support
+ * @weight 100-900
+ */
 @font-face {
     font-family: 'Anuphan';
     src: url('../../assets/typefaces/Anuphan-VariableFont_wght.ttf') format('truetype-variations');
-
     font-weight: 100 900;
     font-style: normal;
     font-display: swap;
 }
 
+/**
+ * @font-face JetBrains Mono
+ * @description Monospace font for code blocks
+ * @weight Medium (static)
+ */
 @font-face {
     font-family: 'JETBRAINSMONO';
     src: url('../../assets/typefaces/JETBRAINSMONO-MEDIUM.ttf');
 }
 
+/**
+ * @root CSS Custom Properties
+ * @description Global design tokens and theme variables
+ * @category Theme, Typography, Layout, Components
+ */
 :root {
     /* Theme Colors */
+    /**
+     * @var --theme-bg
+     * @type {color}
+     * @description Primary background color
+     * @default hsl(0, 0%, 6.2%) - Dark gray
+     */
     --theme-bg: hsl(0, 0%, 6.2%);
+    
+    /**
+     * @var --theme-fg
+     * @type {color}
+     * @description Primary foreground/text color
+     * @default #ffffff - White
+     */
     --theme-fg: #ffffff;
+    
+    /**
+     * @var --theme-accent
+     * @type {color}
+     * @description Accent color for highlights and active states
+     * @default hsl(120, 7%, 85%) - Light gray-green
+     */
     --theme-accent: hsl(120, 7%, 85%);
+    
+    /**
+     * @var --theme-accent-text
+     * @type {color}
+     * @description Text color on accent backgrounds
+     * @default hsl(120, 7%, 10%) - Dark gray-green
+     */
     --theme-accent-text: hsl(120, 7%, 10%);
 
+    /**
+     * @var --theme-accent-selection
+     * @type {color}
+     * @description Background color for text selection
+     * @default hsl(120, 2.5%, 20%) - Dark gray
+     */
     --theme-accent-selection: hsl(120, 2.5%, 20%);
+    
+    /**
+     * @var --theme-accent-selection-texts
+     * @type {color}
+     * @description Text color for selected text
+     * @default hsl(120, 12%, 82.5%) - Light gray-green
+     */
     --theme-accent-selection-texts: hsl(120, 12%, 82.5%);
 
+    /**
+     * @var --theme-text-accent
+     * @type {color}
+     * @description Secondary text color
+     * @default hsl(0, 20%, 90%) - Light warm gray
+     */
     --theme-text-accent: hsl(0, 20%, 90%);
+    
+    /**
+     * @var --theme-accent-blockquote
+     * @type {color}
+     * @description Background color for blockquotes and code blocks
+     * @default hsl(120, 5%, 15%) - Dark gray-green
+     */
     --theme-accent-blockquote: hsl(120, 5%, 15%);
+    
+    /**
+     * @var --hover-color
+     * @type {color}
+     * @description Hover state background color
+     * @default #2a2a2a - Medium gray
+     */
     --hover-color: #2a2a2a;
+    
+    /**
+     * @var --theme-border
+     * @type {color}
+     * @description Border color for UI elements
+     * @default hsl(0, 0%, 20%) - Dark gray
+     */
     --theme-border: hsl(0, 0%, 20%);
 
+    /**
+     * @var --theme-model
+     * @type {color}
+     * @description Modal background color
+     * @default hsl(0, 0%, 7.5%) - Very dark gray
+     */
     --theme-model: hsl(0, 0%, 7.5%);
+    
+    /**
+     * @var --theme-model-border
+     * @type {color}
+     * @description Modal border color
+     * @default hsl(0, 0%, 20%) - Dark gray
+     */
     --theme-model-border: hsl(0, 0%, 20%);
 
+    /* Typography */
+    /**
+     * @var --font-primary
+     * @type {font-family}
+     * @description Primary font stack
+     * @fallback Leelawadee UI, system-ui, sans-serif
+     */
     --font-primary: "Manrope", "Leelawadee UI", system-ui, sans-serif;
+    
+    /**
+     * @var --font-text
+     * @type {font-family}
+     * @description Body text font stack
+     * @fallback Leelawadee UI, system-ui, sans-serif
+     */
     --font-text: "Inter Tight", "Leelawadee UI", system-ui, sans-serif;
+    
+    /**
+     * @var --font-display
+     * @type {font-family}
+     * @description Display/heading font stack
+     * @fallback Anuphan, system-ui, sans-serif
+     */
     --font-display: 'General Sans', 'Anuphan', 'system-ui', sans-serif;
+    
+    /**
+     * @var --font-size-base
+     * @type {size}
+     * @description Base font size for the entire app
+     * @default 14px
+     */
     --font-size-base: 14px;
+    
+    /**
+     * @var --line-height
+     * @type {number}
+     * @description Base line height ratio
+     * @default 1.5
+     */
     --line-height: 1.5;
 
+    /**
+     * @var --transition
+     * @type {timing-function}
+     * @description Default transition easing
+     * @easing cubic-bezier(0.2, 0, 0, 1)
+     * @duration 300ms
+     */
     --transition: cubic-bezier(0.2, 0, 0, 1) 300ms;
 
-    /* Legacy variables */
+    /* Legacy Variables */
+    /**
+     * @deprecated Use CSS reset instead
+     */
     --ResetPadding: 0;
     --ResetMargin: 0;
     --ResetBoxSizing: border-box;
+    
     /* Buttons */
+    /**
+     * @var --PrimaryButtonsColors
+     * @type {color}
+     * @description Primary button background color
+     * @default hsl(0, 0%, 10%) - Very dark gray
+     */
     --PrimaryButtonsColors: hsl(0, 0%, 10%);
 
+    /* Context Menu */
+    /**
+     * @var --ctx-menu-blur
+     * @type {size}
+     * @description Backdrop blur amount for context menus
+     * @default 8px
+     */
     --ctx-menu-blur: 8px;
+    
+    /**
+     * @var --ctx-menu-radius
+     * @type {size}
+     * @description Border radius for context menus
+     * @default 6px
+     */
     --ctx-menu-radius: 6px;
+    
+    /**
+     * @var --ctx-sub-menu-radius
+     * @type {size}
+     * @description Border radius for sub-menus
+     * @default 8px
+     */
     --ctx-sub-menu-radius: 8px;
+    
+    /**
+     * @var --ctx-menu-padding
+     * @type {size}
+     * @description Internal padding for context menus
+     * @default 8px
+     */
     --ctx-menu-padding: 8px;
+    
+    /**
+     * @var --ctx-menu-min-width
+     * @type {size}
+     * @description Minimum width for context menus
+     * @default 190px
+     */
     --ctx-menu-min-width: 190px;
 
+    /**
+     * @var --ctx-menu-bg
+     * @type {color}
+     * @description Context menu background with transparency
+     * @default hsla(0, 0%, 7.5%, 0.820)
+     */
     --ctx-menu-bg: hsla(0, 0%, 7.5%, 0.820);
+    
+    /**
+     * @var --ctx-menu-hover
+     * @type {color}
+     * @description Context menu item hover background
+     * @default hsl(0, 0%, 17.5%)
+     */
     --ctx-menu-hover: hsl(0, 0%, 17.5%);
+    
+    /**
+     * @var --ctx-menu-active
+     * @type {color}
+     * @description Context menu item active background
+     * @default hsl(0, 0%, 5%)
+     */
     --ctx-menu-active: hsl(0, 0%, 5%);
+    
+    /**
+     * @var --ctx-menu-text
+     * @type {color}
+     * @description Context menu text color
+     * @default hsl(0, 0%, 89%)
+     */
     --ctx-menu-text: hsl(0, 0%, 89%);
+    
+    /**
+     * @var --ctx-menu-text-hover
+     * @type {color}
+     * @description Context menu text color on hover
+     * @default hsl(0, 0%, 100%)
+     */
     --ctx-menu-text-hover: hsl(0, 0%, 100%);
 
+    /**
+     * @var --ctx-menu-shadow
+     * @type {box-shadow}
+     * @description Multi-layer shadow for context menus
+     * @layers 3 shadow layers for depth
+     */
     --ctx-menu-shadow:
         0px 24px 38px hsla(0, 0%, 0%, 0.14),
         0px 9px 46px hsla(0, 0%, 0%, 0.12),
@@ -187,12 +434,22 @@
     --titlebar-font-weight: 400;
 }
 
+/**
+ * @selector ::selection
+ * @description Custom text selection colors
+ * @background Light gray-green
+ * @color Dark gray-green
+ */
 ::selection {
     background: var(--theme-accent-selection);
     color: var(--theme-accent-selection-texts);
 }
 
-/* (default) */
+/**
+ * @media (prefers-color-scheme: dark)
+ * @description Dark mode theme (default)
+ * @note Automatically applied when system preference is dark
+ */
 @media (prefers-color-scheme: dark) {
     :root {
         --theme-bg: hsl(0, 0%, 6.2%);
@@ -207,6 +464,12 @@
     }
 }
 
+/**
+ * @media (prefers-color-scheme: light)
+ * @description Light mode theme
+ * @note Automatically applied when system preference is light
+ * @override Changes all theme variables for light appearance
+ */
 @media (prefers-color-scheme: light) {
     :root {
         --theme-bg: #f9f9f9;
@@ -220,7 +483,7 @@
         background: var(--theme-bg);
         color: var(--theme-fg);
 
-        --ctx-menu-bg: hsl(60, 11%, 96%);
+        --ctx-menu-bg: hsl(0, 0%, 100%);
         --ctx-menu-hover: hsl(40, 15%, 90%);
         --ctx-menu-active: hsl(0, 0%, 91%);
         --ctx-menu-text: hsl(0, 0%, 0%);
@@ -234,6 +497,11 @@
     }
 }
 
+/**
+ * @reset Universal Reset
+ * @description Applies base resets to all elements
+ * @features Font family, spacing reset, box-sizing, user-select
+ */
 * {
     font-family: var(--font-primary);
     padding: var(--ResetPadding);
@@ -244,17 +512,31 @@
     transition: 0s;
 }
 
+/**
+ * @selector html
+ * @description Root element base styles
+ */
 html {
     font-size: var(--font-size-base);
     color: var(--theme-fg);
 }
 
+/**
+ * @selector body
+ * @description Body element base styles
+ * @background Semi-transparent black overlay
+ */
 body {
     color: var(--theme-fg);
     line-height: var(--line-height);
     background-color: rgba(0, 0, 0, 0.150);
 }
 
+/**
+ * @media (prefers-reduced-motion: reduce)
+ * @description Accessibility - Disable animations for users who prefer reduced motion
+ * @a11y Respects user's motion preferences
+ */
 @media (prefers-reduced-motion: reduce) {
     * {
         transition: none !important;

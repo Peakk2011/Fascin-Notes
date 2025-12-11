@@ -23,7 +23,7 @@
 .modal-content {
     background-color: var(--theme-model);
     color: var(--theme-fg);
-    border: 1.5px solid var(--theme-model-border);
+    outline: 1.5px solid var(--theme-model-border);
     box-shadow: var(--ctx-menu-shadow);
     margin: auto;
     border-radius: 10px;
