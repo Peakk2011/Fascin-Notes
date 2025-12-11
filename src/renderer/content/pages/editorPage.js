@@ -43,8 +43,8 @@ export const initEditorPage = async (config, noteAPI, modelFind, contextMenu) =>
              * Called on Ctrl/Cmd + S
              * @param {string} content - Current HTML content of the editor
              */
-            onSave: (content) => {
-                // Implement actual save logic, e.g., noteAPI.save(content);
+            onSave: async (content) => {
+                await noteAPI.saveData();
                 statusIndicator.showSaved();
             },
             /**

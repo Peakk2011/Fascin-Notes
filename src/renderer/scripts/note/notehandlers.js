@@ -46,7 +46,13 @@ export const createSetStatus = (els) => {
 export const createLoadData = (els, setStatus) => {
     return async () => {
         try {
-            els.textarea.value = editorContent.text;
+            const savedContent = localStorage.getItem('editorContent');
+            
+            if (savedContent) {
+                editorContent = JSON.parse(savedContent);
+            }
+
+            els.textarea.innerHTML = editorContent.text;
             setCurrentFontSize(editorContent.fontSize);
             els.textarea.style.fontSize = `${editorContent.fontSize}px`;
         } catch (error) {
@@ -68,9 +74,14 @@ export const createSaveData = (els, setStatus) => {
     return async () => {
         try {
             editorContent = {
-                text: els.textarea.value,
+                text: els.textarea.innerHTML,
                 fontSize: currentFontSize
             };
+
+            localStorage.setItem(
+                'editorContent',
+                JSON.stringify(editorContent)
+            );
 
             setStatus(
                 'saved',
