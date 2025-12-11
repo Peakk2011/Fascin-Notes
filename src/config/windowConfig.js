@@ -41,13 +41,13 @@ export const getWindowConfig = () => {
             }
         }),
         ...(OS === 'win32' && {
-            // backgroundMaterial: 'mica',
-            titleBarStyle: 'default',
-            // titleBarOverlay: {
-            //     color: '#00000000',
-            //     symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
-            //     height: 36 + 1
-            // }
+            backgroundMaterial: 'mica',
+            titleBarStyle: 'hidden',
+            titleBarOverlay: {
+                color: '#00000000',
+                symbolColor: nativeTheme.shouldUseDarkColors ? '#ffffff' : '#000000',
+                height: 38
+            }
         }),
         webPreferences: {
             preload: resolvePath('../preload.js'),

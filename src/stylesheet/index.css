@@ -19,8 +19,13 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    user-select: none;
     z-index: var(--titlebar-z-index);
     background-color: var(--theme-bg);
+}
+
+body.win32 .application-titlebar {
+    height: calc(var(--titlebar-height) - 2px);
 }
 
 /**
@@ -51,6 +56,12 @@
     right: var(--status-right);
     z-index: var(--status-z-index);
     background-color: var(--theme-bg);
+}
+
+body.win32 .status {
+    left: var(--status-right);
+    right: 0;
+    top: calc(var(--status-top) - 6px);
 }
 
 /**

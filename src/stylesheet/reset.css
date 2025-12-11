@@ -104,9 +104,9 @@
      * @var --theme-bg
      * @type {color}
      * @description Primary background color
-     * @default hsl(0, 0%, 6.2%) - Dark gray
+     * @default hsl(0, 0%, 6%) - Dark gray
      */
-    --theme-bg: hsl(0, 0%, 6.2%);
+    --theme-bg: hsl(0, 0%, 6%);
     
     /**
      * @var --theme-fg
@@ -452,7 +452,7 @@
  */
 @media (prefers-color-scheme: dark) {
     :root {
-        --theme-bg: hsl(0, 0%, 6.2%);
+        --theme-bg: hsl(0, 0%, 6%);
         --theme-fg: #ffffff;
         --theme-accent: hsl(120, 7%, 85%);
         --hover-color: #2a2a2a;
@@ -529,7 +529,7 @@ html {
 body {
     color: var(--theme-fg);
     line-height: var(--line-height);
-    background-color: rgba(0, 0, 0, 0.150);
+    /* background-color: rgba(0, 0, 0, 0.150); */
 }
 
 /**
